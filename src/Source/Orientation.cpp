@@ -48,13 +48,10 @@ namespace Orientation
         mpuInterrupt = true;
     }
 
-    void init() {
-      //Serial.begin(115200);
+    bool init() {
+        //  Cheeky one-liner
 
-      setupCompass();
-      setupGyro();
-      
-      Serial.println("Waiting for gyro to stabalize...");
+        return (setupCompass() && setupGyro())
     }
 
     void update() {
@@ -186,17 +183,18 @@ namespace Orientation
         Serial.println(roll_off);*/
     }
 
-    void setupCompass()
+    bool setupCompass()
     {
         if(!mag.begin())
         {
           /* There was a problem detecting the HMC5883 ... check your connections */
           Serial.println("Ooops, no HMC5883 detected ... Check your wiring!");
-          while(1);
+          return false;
         }
+        return true;
     }
 
-    void setupGyro()
+    bool setupGyro()
     {
         #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
               Wire.begin();
@@ -230,7 +228,9 @@ namespace Orientation
           Serial.print(F("DMP Initialization failed (code "));
           Serial.print(devStatus);
           Serial.println(F(")"));
+          return false;
         }
+        return true;
     }
     
     double getCompassHeading()

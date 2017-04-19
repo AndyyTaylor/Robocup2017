@@ -29,7 +29,8 @@ bool initEverything()
     Serial.begin(115200);
     Serial.println("Initializing");
     
-    Orientation::init();
+    if (!Orientation::init())
+        return false;
     
     return true;
 }

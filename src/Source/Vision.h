@@ -1,17 +1,14 @@
 #ifndef CAMERA_H_INCLUDED
 #define CAMERA_H_INCLUDED
 
-class Camera
+namespace Camera
 {
-public:
-    Camera();
     bool init();
     
     void update();
     void updateView();
     
     double getBallAngle();
-};
-
+}
 
 #endif
