@@ -3,11 +3,11 @@
 
 namespace Orientation
 {
-    void init();
+    bool init();
     void update();
     
-    void setupCompass();
-    void setupGyro();
+    bool setupCompass();
+    bool setupGyro();
 
     void calcCompassHeading();
     void loadGyroData();
