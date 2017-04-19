@@ -238,7 +238,7 @@ namespace Orientation
         return compassHeading;
     }
 
-    double getYaw()
+    float getYaw()
     {
         return yaw;
     }

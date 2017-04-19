@@ -16,7 +16,7 @@ namespace Orientation
     void setOffsets();
     
     double getCompassHeading();
-    double getYaw();
+    float getYaw();
     bool isStabalized();
 
     void outputAllData();
