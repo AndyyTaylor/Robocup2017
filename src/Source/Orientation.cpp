@@ -51,7 +51,7 @@ namespace Orientation
     bool init() {
         //  Cheeky one-liner
 
-        return (setupCompass() && setupGyro())
+        return (setupCompass() && setupGyro());
     }
 
     void update() {
@@ -60,17 +60,17 @@ namespace Orientation
         }
 
         loadGyroData();
-        
-        if (!gyroStablized) 
+
+        if (!gyroStablized)
         {
             checkGyroStabalized();
             if (gyroStablized) setOffsets();
         }
-        
+
         if (gyroStablized)
         {
             //outputAllData();
-        }    
+        }
     }
 
     void setOffsets()
@@ -88,7 +88,7 @@ namespace Orientation
             stabElapsed = 0;
             prevYaw = yaw;
         }
-        
+
         if (stabElapsed > 3000)
         {
             gyroStablized = true;
@@ -136,22 +136,22 @@ namespace Orientation
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-        
+
         yaw = ypr[0]*180/M_PI - yaw_off;
         pitch = ypr[1]*180/M_PI - pitch_off;
         roll = ypr[2]*180/M_PI - roll_off;
-        
+
         // normalise(yaw)
         if(yaw < 0)
             yaw += 360;
         if(yaw > 360)
             yaw -= 360;
-        
+
         if(pitch < 0)
             pitch += 360;
         if(pitch > 360)
             pitch -= 360;
-            
+
         if(roll < 0)
             roll += 360;
         if(roll > 360)
@@ -163,7 +163,7 @@ namespace Orientation
         Serial.println("----------------");
         Serial.print("Compass Heading: ");
         Serial.println(compassHeading);
-        
+
         Serial.println("Gryo");
         Serial.print("\tyaw: ");
         Serial.println(yaw);
@@ -171,7 +171,7 @@ namespace Orientation
         //Serial.println(pitch);
         //Serial.print("\troll: ");
         //Serial.println(roll);
-        
+
         /*Serial.println("Offsets");
         Serial.print("\tcomp: ");
         Serial.println(comp_off);
@@ -210,7 +210,7 @@ namespace Orientation
         mpu.setXGyroOffset(220);
         mpu.setYGyroOffset(76);
         mpu.setZGyroOffset(-85);
-        mpu.setZAccelOffset(1788); 
+        mpu.setZAccelOffset(1788);
 
         if (devStatus == 0) {
           Serial.println(F("Enabling DMP..."));
@@ -232,17 +232,17 @@ namespace Orientation
         }
         return true;
     }
-    
+
     double getCompassHeading()
     {
         return compassHeading;
     }
-    
+
     double getYaw()
     {
         return yaw;
     }
-    
+
     bool isStabalized()
     {
         return gyroStablized;

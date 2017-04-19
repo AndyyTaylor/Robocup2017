@@ -14,7 +14,7 @@ int main()
 
     while (1)
     {
-        MotorDriver::direction(0);
+        MotorDriver::direction(90);
     }
 
     return 0;

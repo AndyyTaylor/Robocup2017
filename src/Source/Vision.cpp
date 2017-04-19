@@ -10,14 +10,14 @@ namespace Camera
     struct Ball
     {
         int x, y, w, h;
-    }
+    };
 
-    #define X_CENTER        ((PIXY_MAX_X-PIXY_MIN_X)/2)       
+    #define X_CENTER        ((PIXY_MAX_X-PIXY_MIN_X)/2)
     #define Y_CENTER        ((PIXY_MAX_Y-PIXY_MIN_Y)/2)
 
     bool init()
     {
-        pixy.init();    
+        pixy.init();
     }
 
     void update()
@@ -29,7 +29,7 @@ namespace Camera
     {
         int j;
         uint16_t blocks;
-        char buf[32]; 
+        char buf[32];
         int32_t panError, tiltError;
 
         blocks = pixy.getBlocks();
@@ -44,16 +44,16 @@ namespace Camera
 
             pixy.setServos(panLoop.m_pos, tiltLoop.m_pos);
             */
-            
+
             for (j=0; j<blocks; j++)
             {
                 pixy.blocks[j].print();
                 delay(100);
                 if (pixy.blocks[j].signature == 0)
                 {
-                    
+
                 }
             }
-        }  
+        }
     }
 }

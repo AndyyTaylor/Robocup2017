@@ -5,9 +5,9 @@ namespace MotorDriver
 {
     void init();
 
-    void direction(double)
+    void direction(double inangle);
 
-    void setMaxSpeed(int);
+    void setMaxSpeed(int speed);
 }
 
 
