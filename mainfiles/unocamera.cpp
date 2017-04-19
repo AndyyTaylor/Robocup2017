@@ -2,13 +2,33 @@
 
 #include "Source/Orientation.h"
 
-#include <Wire.h>
+//#include <Wire.h>
+
+#include <EasyTransferI2C.h>
+
+//create object
+EasyTransferI2C ET;
+
+struct SEND_DATA_STRUCTURE{
+  //put your variable definitions here for the data you want to send
+  //THIS MUST BE EXACTLY THE SAME ON THE OTHER ARDUINO
+  double number;
+};
+
+//give a name to the group of data
+SEND_DATA_STRUCTURE mydata;
+
+//define slave i2c address
+#define I2C_SLAVE_ADDRESS 9
 
 bool initEverything();
 
 void dead();
 
 void sendData();
+void receiveData();
+
+bool awaitingdata = false;
 
 int main()
 {
@@ -18,6 +38,10 @@ int main()
     while (1)
     {
         Orientation::update();
+        mydata.number = Orientation::getYaw();
+        Serial.println(mydata.number);
+        ET.sendData(I2C_SLAVE_ADDRESS);
+        //Serial.println(Orientation::getCompassHeading());
     }
 
     return 0;
@@ -32,32 +56,12 @@ bool initEverything()
 
     if (!Orientation::init())
         return false;
-    
-    Wire.begin(8);                // join i2c bus with address #8
-    Wire.onRequest(sendData);
 
-    
+    ET.begin(details(mydata), &Wire);
+
+    mydata.number=0;
 
     return true;
-}
-
-void sendData()
-{
-    Serial.println("Sending data");
-    String s = String(Orientation::getYaw());
-    while (s.length() < 6)
-    {
-        s += "0";
-    }
-    Serial.println(s);
-    
-    char data[6];
-    for (int i = 0; i < 6; i++)
-    {
-        data[i] = (char) s[i];
-    }
-    Serial.println(data[0]);
-    Wire.write(data);
 }
 
 void dead()

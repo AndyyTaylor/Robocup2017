@@ -1,9 +1,6 @@
 #include <Arduino.h>
-//#include <Wire.h>
 
-#include "Source/Orientation.h"
-#include "Source/MotorDriver.h"
-
+#include <Wire.h>
 #include <EasyTransferI2C.h>
 
 //create object
@@ -18,21 +15,45 @@ struct RECEIVE_DATA_STRUCTURE{
 //give a name to the group of data
 RECEIVE_DATA_STRUCTURE mydata;
 
+//define slave i2c address
 #define I2C_SLAVE_ADDRESS 9
 
 void receive(int numBytes) {}
 
 bool initEverything();
 
-void dead();
+void setup(){
+  Serial.begin(115200);
+  Serial.println("yay");
+  Wire.begin(I2C_SLAVE_ADDRESS);
+  //start the library, pass in the data details and the name of the serial port. Can be Serial, Serial1, Serial2, etc.
+  ET.begin(details(mydata), &Wire);
+  //define handler function on receiving data
+  Wire.onReceive(receive);
+
+}
+
+void loop() {
+  //check and see if a data packet has come in.
+  if(ET.receiveData()){
+    //this is how you access the variables. [name of the group].[variable name]
+    //since we have data, we will blink it out.
+    Serial.println(mydata.number);
+  }
+}
+
+
+
+
 
 int main()
 {
     if (!initEverything())
-        dead();
+        Serial.println("fcuk");
 
     while (1)
     {
+        //Serial.println("dostuff");
         if(ET.receiveData()){
           //this is how you access the variables. [name of the group].[variable name]
           //since we have data, we will blink it out.
@@ -45,27 +66,7 @@ int main()
 
 bool initEverything()
 {
-    init();
 
-    Serial.begin(115200);
-    Serial.println("Initializing");
-
-    Wire.begin(I2C_SLAVE_ADDRESS);
-  //start the library, pass in the data details and the name of the serial port. Can be Serial, Serial1, Serial2, etc.
-    ET.begin(details(mydata), &Wire);
-  //define handler function on receiving data
-    Wire.onReceive(receive);
-
-    //Orientation::init();
-    MotorDriver::init();
-    MotorDriver::setMaxSpeed(200);
-
+    setup();
     return true;
-}
-
-void dead()
-{
-    Serial.println(F("R.I.P Arduino"));
-
-    while (1);
 }
