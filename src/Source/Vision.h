@@ -1,14 +1,15 @@
 #ifndef CAMERA_H_INCLUDED
 #define CAMERA_H_INCLUDED
 
-namespace Camera
+namespace Vision
 {
     bool init();
     
     void update();
     void updateView();
     
-    double getBallAngle();
+    float getBallAngle();
+    void lookAtBall();
 }
 
 #endif

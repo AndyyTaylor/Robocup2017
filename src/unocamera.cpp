@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "Source/Orientation.h"
+#include "Source/Vision.h"
 
 //#include <Wire.h>
 
@@ -37,11 +38,14 @@ int main()
 
     while (1)
     {
-        Orientation::update();
-        mydata.number = Orientation::getYaw();
-        Serial.println(mydata.number);
-        ET.sendData(I2C_SLAVE_ADDRESS);
+        //Orientation::update();
+        //mydata.number = Orientation::getYaw();
+        //Serial.println(mydata.number);
+        //ET.sendData(I2C_SLAVE_ADDRESS);
         //Serial.println(Orientation::getCompassHeading());
+        Vision::update();
+        //Serial.println(Vision::ball.x);
+        Serial.println(Vision::getBallAngle());
     }
 
     return 0;
@@ -54,10 +58,13 @@ bool initEverything()
     Serial.begin(115200);
     Serial.println("Initializing");
 
-    if (!Orientation::init())
+    //if (!Orientation::init())
+    //    return false;
+    
+    if (!Vision::init())
         return false;
 
-    ET.begin(details(mydata), &Wire);
+    //ET.begin(details(mydata), &Wire);
 
     mydata.number=0;
 
