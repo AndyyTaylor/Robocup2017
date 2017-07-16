@@ -5,9 +5,15 @@ namespace MotorDriver
 {
     void init();
 
+    void update(double orientation);
+
     void direction(double inangle);
 
     void setMaxSpeed(int speed);
+
+    void stop();
+
+    double correct(double speed);
 }
 
 

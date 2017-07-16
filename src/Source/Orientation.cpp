@@ -51,7 +51,7 @@ namespace Orientation
     bool init() {
         //  Cheeky one-liner
 
-        return (setupCompass() && setupGyro());
+        return (setupGyro() && setupCompass());
     }
 
     void update() {
@@ -185,26 +185,29 @@ namespace Orientation
 
     bool setupCompass()
     {
+        Serial.println("F");
         if(!mag.begin())
         {
           /* There was a problem detecting the HMC5883 ... check your connections */
           Serial.println("Ooops, no HMC5883 detected ... Check your wiring!");
           return false;
         }
+        Serial.println("F");
         return true;
     }
 
     bool setupGyro()
     {
+        Serial.println("h");
         #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
               Wire.begin();
               TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
         #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
               Fastwire::setup(400, true);
         #endif
-
+        
         mpu.initialize();
-
+        Serial.println("G");
         devStatus = mpu.dmpInitialize();
 
         mpu.setXGyroOffset(220);

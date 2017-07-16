@@ -8,9 +8,11 @@ DualMC33926MotorShield::DualMC33926MotorShield()
   _nD2 = 4;
   _M1DIR = 7;
   _M2DIR = 8;
-  _nSF = 12;
-  _M1FB = A0; 
+  _nSF = 0;
+  _M1FB = A0;
   _M2FB = A1;
+  _M1PWM = 11;
+  _M2PWM = 12;
 }
 
 DualMC33926MotorShield::DualMC33926MotorShield(unsigned char M1DIR, unsigned char M1PWM, unsigned char M1FB,
@@ -23,8 +25,10 @@ DualMC33926MotorShield::DualMC33926MotorShield(unsigned char M1DIR, unsigned cha
   _M1DIR = M1DIR;
   _M2DIR = M2DIR;
   _nSF = nSF;
-  _M1FB = M1FB; 
+  _M1FB = M1FB;
   _M2FB = M2FB;
+  _M1PWM = M1PWM;
+  _M2PWM = M2PWM;
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
@@ -42,7 +46,7 @@ void DualMC33926MotorShield::init()
   digitalWrite(_nD2,HIGH); // default to on
   pinMode(_nSF,INPUT);
 
-  #if defined(__AVR_ATmega168__)|| defined(__AVR_ATmega328P__)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
   // Timer 1 configuration
   // prescaler: clockI/O / 1
   // outputs enabled
@@ -51,16 +55,23 @@ void DualMC33926MotorShield::init()
   //
   // PWM frequency calculation
   // 16MHz / 1 (prescaler) / 2 (phase-correct) / 400 (top) = 20kHz
-  TCCR1A = 0b10100000;
-  TCCR1B = 0b00010001;
-  ICR1 = 400;
+  if (_M1PWM == 11) {
+    TCCR1A = 0b10100000;
+    TCCR1B = 0b01010001;
+    ICR1 = 400;
+  }
+  else {
+    TCCR3A = 0b10100000;
+    TCCR3B = 0b01010001;
+    ICR3 = 400;
+  }
   #endif
 }
 // Set speed for motor 1, speed is a number betwenn -400 and 400
 void DualMC33926MotorShield::setM1Speed(int speed)
 {
   unsigned char reverse = 0;
-  
+
   if (speed < 0)
   {
     speed = -speed;  // Make speed a positive quantity
@@ -68,8 +79,13 @@ void DualMC33926MotorShield::setM1Speed(int speed)
   }
   if (speed > 400)  // Max PWM dutycycle
     speed = 400;
-  #if defined(__AVR_ATmega168__)|| defined(__AVR_ATmega328P__)
-  OCR1A = speed;
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  if (_M1PWM == 11) {
+    OCR1A = speed;
+  }
+  else {
+    OCR3A = speed;
+  }
   #else
   analogWrite(_M1PWM,speed * 51 / 80); // default to using analogWrite, mapping 400 to 255
   #endif
@@ -83,7 +99,7 @@ void DualMC33926MotorShield::setM1Speed(int speed)
 void DualMC33926MotorShield::setM2Speed(int speed)
 {
   unsigned char reverse = 0;
-  
+
   if (speed < 0)
   {
     speed = -speed;  // Make speed a positive quantity
@@ -91,10 +107,15 @@ void DualMC33926MotorShield::setM2Speed(int speed)
   }
   if (speed > 400)  // Max PWM dutycycle
     speed = 400;
-  #if defined(__AVR_ATmega168__)|| defined(__AVR_ATmega328P__)
-  OCR1B = speed;
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  if (_M1PWM == 11) {
+    OCR1B = speed;
+  }
+  else {
+    OCR3B = speed;
+  }
   #else
-  analogWrite(_M2PWM,speed * 51 / 80); // default to using analogWrite, mapping 400 to 255
+  analogWrite(_M2PWM, speed * 51 / 80); // default to using analogWrite, mapping 400 to 255
   #endif
   if (reverse)
     digitalWrite(_M2DIR,HIGH);

@@ -12,7 +12,10 @@ EasyTransferI2C ET;
 struct RECEIVE_DATA_STRUCTURE{
   //put your variable definitions here for the data you want to receive
   //THIS MUST BE EXACTLY THE SAME ON THE OTHER ARDUINO
-  double number;
+  float number;
+  float angle;
+  bool foundball;
+  bool stab;
 };
 
 //give a name to the group of data
@@ -26,6 +29,8 @@ bool initEverything();
 
 void dead();
 
+int lastmillis = 0;
+
 int main()
 {
     if (!initEverything())
@@ -36,8 +41,13 @@ int main()
         if(ET.receiveData()){
           //this is how you access the variables. [name of the group].[variable name]
           //since we have data, we will blink it out.
-          Serial.println(mydata.number);
+          float testing = mydata.angle;
+          bool doit = mydata.stab;
+          Serial.println(testing);
+          //MotorDriver::update(mydata.number);
         }
+        //Serial.println("yay");
+        MotorDriver::direction(100);
     }
 
     return 0;
@@ -58,7 +68,7 @@ bool initEverything()
 
     //Orientation::init();
     MotorDriver::init();
-    MotorDriver::setMaxSpeed(200);
+    MotorDriver::setMaxSpeed(100);
 
     return true;
 }
