@@ -28,6 +28,7 @@ struct RECEIVE_DATA_STRUCTURE_GYRO {
 };
 
 const int I2C_SLAVE_ADDRESS = 9;
+int RADAR_ERROR = 100;
 
 void receive(int numBytes) {}
 void printSim();
@@ -37,11 +38,13 @@ void receiveRadar();
 void receiveCamera();
 void receiveGyro();
 
+float angleToTarget(int x1, int y1, int x2, int y2);
+float distanceToTarget(int x1, int y1, int x2, int y2);
+
 bool radarValid();
 bool radarTrash();
 bool radarXValid();
 bool radarYValid();
-
 bool initEverything();
 
 
@@ -58,8 +61,11 @@ EasyTransferI2C cameraIn;
 
 elapsedMillis serialTimer;
 elapsedMillis visionTimer;
+elapsedMillis yTimer;
+elapsedMillis xTimer;
 
 int x, y, width, height, ball, gyro, vis, stab;
+float mode = 0;
 
 int main() {
     if (!initEverything())
@@ -73,24 +79,44 @@ int main() {
         MotorDriver::update(gyro);
         // MotorDriver::direction(0);
         
-        if ((vis || visionTimer < 1000) && stab) {
-            if (vis) {
-                visionTimer = 0;
-            }
-            
-            if (abs(ball) < 20) {
-                MotorDriver::direction(0);
+        if (stab) {
+            if ((vis || visionTimer < 100) && false) {
+                mode = 0;
+                if (vis) {
+                    visionTimer = 0;
+                }
+                
+                if (abs(ball) < 20) {
+                    // MotorDriver::direction(0);
+                } else {
+                    // MotorDriver::direction(ball * 1.5);
+                    // MotorDriver::direction(ball + (20 * (ball / abs(ball))));
+                }
+            } else if (yTimer < 700 && xTimer < 700 && (abs(y-2000) > 100 || abs(x-900) > 100)) {
+                mode = distanceToTarget(x, y, 900, 2000) / 13 + 75;
+                RADAR_ERROR = distanceToTarget(x, y, 900, 2000) / 4;
+                mode = RADAR_ERROR;
+                if (yTimer < 700 && xTimer < 700) {
+                    MotorDriver::direction(angleToTarget(x, y, 900, 2000));
+                    MotorDriver::setMaxSpeed(distanceToTarget(x, y, 900, 2000) / 13 + 75);
+                } else if (yTimer < 1000 && abs(y-1800) > 100) {
+                    // MotorDriver::direction(180);
+                } else if (xTimer < 1000 && abs(x-900) > 100) {
+                    // MotorDriver::direction(90);
+                } else if (xTimer < 1000 && abs(x-900) > 100) {
+                    // MotorDriver::direction(-90);
+                }
             } else {
-                // MotorDriver::direction(ball * 1.5);
-                MotorDriver::direction(ball + (45 * (ball / abs(ball))));
+                MotorDriver::stop();
             }
         } else {
             MotorDriver::stop();
         }
         
-        
         if (serialTimer > 30) {
             // printSim();
+            Serial.print(mode);
+            Serial.print(" -> ");
             Serial.print(x);
             Serial.print(", ");
             Serial.print(y);
@@ -115,20 +141,28 @@ int main() {
     return 0;
 }
 
+float angleToTarget(int x1, int y1, int x2, int y2) {
+    return atan2(y1-y2, x1-x2) * 180 / 3.14159265 - 90;
+}
+
+float distanceToTarget(int x1, int y1, int x2, int y2) {
+    return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+}
+
 bool radarValid() {
-  return abs(1840-mylidar.width) < 50 && abs(2450-mylidar.height) < 50;
+  return abs(1840-mylidar.width) < RADAR_ERROR && abs(2450-mylidar.height) < RADAR_ERROR;
 }
 
 bool radarTrash() {
-  return abs(1840-mylidar.width) > 50 && abs(2450-mylidar.height) > 50;
+  return abs(1840-mylidar.width) > RADAR_ERROR && abs(2450-mylidar.height) > RADAR_ERROR;
 }
 
 bool radarXValid() {
-  return abs(1840-mylidar.width) < 50;
+  return abs(1840-mylidar.width) < RADAR_ERROR;
 }
 
 bool radarYValid() {
-  return abs(2450-mylidar.height) < 50;
+  return abs(2450-mylidar.height) < RADAR_ERROR;
 }
 
 void receiveGyro() {
@@ -176,8 +210,14 @@ void receiveRadar() {
         
         
         if (!radarTrash()) {
-            if (radarXValid()) x = mylidar.x;
-            if (radarYValid()) y = mylidar.y;
+            if (radarXValid()) {
+                xTimer = 0;
+                x = mylidar.x;
+            }
+            if (radarYValid()) {
+                yTimer = 0;
+                y = mylidar.y;
+            }
             width = mylidar.width;
             height = mylidar.height;
         } else {
@@ -221,7 +261,7 @@ bool initEverything() {
     Wire.onReceive(receive);
     
     MotorDriver::init();
-    MotorDriver::setMaxSpeed(100);
+    MotorDriver::setMaxSpeed(200);
 
     return true;
 }

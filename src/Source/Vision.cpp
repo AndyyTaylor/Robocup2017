@@ -14,7 +14,7 @@ namespace Vision {
         float angle;
 
         void setAngle() {
-            angle = (((float) x/319.0f) - 0.5f) * 75;
+            angle = ((static_cast<float>(x)/319.0f) - 0.5f) * 75;
         }
 
         float getAngle(){
@@ -42,11 +42,12 @@ namespace Vision {
 
     bool init() {
         pixy.init();
-        pixy.setBrightness(0);
+        // pixy.setBrightness(255);
+        // pixy.setLED(0, 0, 0);
         
         AFMS.begin();
         
-        myMotor->setSpeed(10);
+        myMotor->setSpeed(4);
         
         return true;
     }
@@ -54,10 +55,6 @@ namespace Vision {
     void update() {
         // if (totalstep != 0) totalstep = fmin(fabs(totalstep), limit) * (totalstep/fabs(totalstep));
         updateView();
-        //return;
-        //myMotor->step(50, FORWARD, DOUBLE);
-        //delay(100);
-        //myMotor->step(50, BACKWARD, DOUBLE);
     }
     
     void updateMotor() {
@@ -67,24 +64,24 @@ namespace Vision {
             lookAtBall();
             ballFound = false;
         }
+        // Serial.println(totalstep);
     }
 
     void updateView() {
         uint16_t blocks;
-        char buf[32];
-        // Serial.println(ball.x);
+
         blocks = pixy.getBlocks();
         
         if (blocks) {
             for (int i = 0; i < blocks; i++) {
-                // Serial.println(pixy.blocks[i].signature);
                 if (pixy.blocks[i].signature == 1) {
+                    // if (pixy.blocks[i].width * pixy.blocks[i].height < 100) continue;
                     ball.x = pixy.blocks[i].x;
                     ball.y = pixy.blocks[i].y;
                     ball.w = pixy.blocks[i].width;
                     ball.h = pixy.blocks[i].height;
                     ball.setAngle();
-                    // lookAtBall();
+
                     ballFound = true;
                     lastSeenBall = millis();
                 }
@@ -93,16 +90,6 @@ namespace Vision {
     }
     
     void findBall() {
-        Serial.print("Finding: ");
-        Serial.print(getBallAngle());
-        Serial.print(", ");
-        Serial.println(dirmod * ball.getAngle());
-        /*if (fabs(totalstep) > limit-1 && canFlipDir) {
-            dirmod *= -1;
-            canFlipDir = false;
-        } else if (fabs(totalstep) < limit-4) {
-            canFlipDir = true;
-        }*/
         if (totalstep > limit-1) {
             searching = true;
             dirmod = -1;
@@ -127,23 +114,25 @@ namespace Vision {
     }
 
     void lookAtBall() {
-        Serial.print("Looking: ");
-        Serial.println(getBallAngle());
         dirmod = 1;
         searching = false;
-        int type = INTERLEAVE;
-        if (fabs(ball.getAngle()) < 12) return;
-        if (fabs(ball.getAngle()) < 25) type = INTERLEAVE;
+        int type;
+        if (fabs(ball.getAngle()) < 10) return;
+        if (fabs(ball.getAngle()) < 18)
+            type = INTERLEAVE;
+        else
+            type = SINGLE;
+        
         if (ball.getAngle() > 0) {
             myMotor->step(1, BACKWARD, type);
             if (type == INTERLEAVE) totalstep -= 0.5;
             else
-            totalstep -= 0.5;
+            totalstep -= 1;
         } else {
             myMotor->step(1, FORWARD, type);
             if (type == INTERLEAVE) totalstep += 0.5;
             else
-            totalstep += 0.5;
+            totalstep += 1;
         }
     }
 
