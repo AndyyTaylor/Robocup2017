@@ -42,6 +42,7 @@ namespace Vision {
 
     bool init() {
         pixy.init();
+        pixy.setBrightness(0);
         
         AFMS.begin();
         

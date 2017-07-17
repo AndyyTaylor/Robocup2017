@@ -31,20 +31,16 @@ void dead();
 
 int lastmillis = 0;
 
-int main()
-{
+int main() {
     if (!initEverything())
         dead();
 
-    while (1)
-    {
-        if(ET.receiveData()){
-          //this is how you access the variables. [name of the group].[variable name]
-          //since we have data, we will blink it out.
+    while (1) {
+        if (ET.receiveData()) {
           float testing = mydata.angle;
           bool doit = mydata.stab;
           Serial.println(testing);
-          //MotorDriver::update(mydata.number);
+          // MotorDriver::update(mydata.number);
         }
         //Serial.println("yay");
         MotorDriver::direction(100);

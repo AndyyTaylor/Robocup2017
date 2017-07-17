@@ -9,9 +9,6 @@
 struct SEND_STRUCT{
     int x;
     int y;
-    int width;
-    int height;
-    float angle;
 };
 
 RPLidar lidar;
@@ -54,20 +51,19 @@ void loop() {
         
         field.push_back({(int) x, (int) y});
         
+        if (field.size() % 10 == 0) {
+            mydata.x = x;
+            mydata.y = y;
+            Sender.sendData();
+        }
+        
         // Serial.println(field.size());
         digitalWrite(LED_BUILTIN, LOW);
-        if (field.size() > 100) {
+        if (field.size() > 300) {
             digitalWrite(LED_BUILTIN, HIGH);
             
             float pos[5];
             calcBoundRect(field, pos);
-            
-            mydata.x = pos[0];
-            mydata.y = pos[1];
-            mydata.width = pos[2];
-            mydata.height = pos[3];
-            mydata.angle = pos[4];
-            Sender.sendData();
             
             field.clear();
         }

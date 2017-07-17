@@ -51,12 +51,13 @@ namespace Orientation
     bool init() {
         //  Cheeky one-liner
 
-        return (setupGyro() && setupCompass());
+        // return (setupGyro() && setupCompass());
+        return setupGyro();
     }
 
     void update() {
         while (!mpuInterrupt && fifoCount < packetSize) {
-            calcCompassHeading();
+            // calcCompassHeading();
         }
 
         loadGyroData();
@@ -67,9 +68,8 @@ namespace Orientation
             if (gyroStablized) setOffsets();
         }
 
-        if (gyroStablized)
-        {
-            //outputAllData();
+        if (gyroStablized) {
+            // outputAllData();
         }
     }
 
@@ -95,7 +95,7 @@ namespace Orientation
         }
     }
 
-    void calcCompassHeading()
+    /*void calcCompassHeading()
     {
       sensors_event_t event;
       mag.getEvent(&event);
@@ -110,7 +110,7 @@ namespace Orientation
         heading -= 2*PI;
 
       compassHeading = heading * 180/M_PI - comp_off;
-    }
+  }*/
 
     void loadGyroData()
     {
@@ -158,7 +158,7 @@ namespace Orientation
             roll -= 360;
     }
 
-    void outputAllData()
+    /*void outputAllData()
     {
         Serial.println("----------------");
         Serial.print("Compass Heading: ");
@@ -180,21 +180,21 @@ namespace Orientation
         Serial.print("\tpitch: ");
         Serial.println(pitch_off);
         Serial.print("\troll: ");
-        Serial.println(roll_off);*/
-    }
+        Serial.println(roll_off);
+    }*/
 
-    bool setupCompass()
+    /*bool setupCompass()
     {
         Serial.println("F");
         if(!mag.begin())
         {
-          /* There was a problem detecting the HMC5883 ... check your connections */
+          /* There was a problem detecting the HMC5883 ... check your connections 
           Serial.println("Ooops, no HMC5883 detected ... Check your wiring!");
           return false;
         }
         Serial.println("F");
         return true;
-    }
+    }*/
 
     bool setupGyro()
     {

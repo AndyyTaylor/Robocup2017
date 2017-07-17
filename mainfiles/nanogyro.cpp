@@ -16,6 +16,7 @@ SEND_DATA_STRUCTURE mydata;
 void setup() {
     Orientation::init();
     
+    Serial.begin(115200);
     ET.begin(details(mydata), &Serial);
 }
 
@@ -24,7 +25,7 @@ void loop() {
     
     mydata.angle = Orientation::getYaw();
     mydata.stab = Orientation::isStabalized();
-    
+    // Serial.println(mydata.angle);
     ET.sendData();
 }
 
