@@ -9,7 +9,7 @@
 #include <EasyTransferI2C.h>
 #include <elapsedMillis.h>
 
-struct RECEIVE_DATA_STRUCTURE_LIDAR{
+struct RECEIVE_DATA_STRUCTURE_LIDAR {
     int x;
     int y;
     int width;
@@ -17,7 +17,7 @@ struct RECEIVE_DATA_STRUCTURE_LIDAR{
     float angle;
 };
 
-struct RECEIVE_DATA_STRUCTURE_CAMERA{
+struct RECEIVE_DATA_STRUCTURE_CAMERA {
     float angle;
     bool foundball;
 };
@@ -28,7 +28,12 @@ struct RECEIVE_DATA_STRUCTURE_GYRO {
 };
 
 const int I2C_SLAVE_ADDRESS = 9;
-int RADAR_ERROR = 100;
+const int MIN_RADAR_ERROR = 30;
+const int MIN_MOTOR = 100;
+const int MAX_MOTOR = 200;
+const int MAX_RADAR_ERROR = 300;
+
+int Radar_Error = 100;
 
 void receive(int numBytes) {}
 void printSim();
@@ -37,6 +42,7 @@ void dead();
 void receiveRadar();
 void receiveCamera();
 void receiveGyro();
+void goToTarget(int tx, int ty, int maxRadar = MAX_RADAR_ERROR, int maxMotor = MAX_MOTOR, int minDistance = 100);
 
 float angleToTarget(int x1, int y1, int x2, int y2);
 float distanceToTarget(int x1, int y1, int x2, int y2);
@@ -52,7 +58,7 @@ RECEIVE_DATA_STRUCTURE_LIDAR mylidar;
 RECEIVE_DATA_STRUCTURE_CAMERA mydata;
 RECEIVE_DATA_STRUCTURE_GYRO gyroData;
 
-DualMC33926MotorShield tp(7, 11, A0, 8, 12, A1, 4, 0);
+DualMC33926MotorShield tp(7, 11, A8, 8, 12, A1, 4, 0);
 DualMC33926MotorShield bt(14, 5, A2, 15, 2, A3, 17, 16);
 
 EasyTransfer radarIn;
@@ -77,8 +83,9 @@ int main() {
         receiveGyro();
         
         MotorDriver::update(gyro);
-        // MotorDriver::direction(0);
+        // MotorDriver::update(gyro - angleToTarget(900, 300));
         
+        mode = -1;
         if (stab) {
             if ((vis || visionTimer < 100) && false) {
                 mode = 0;
@@ -92,24 +99,13 @@ int main() {
                     // MotorDriver::direction(ball * 1.5);
                     // MotorDriver::direction(ball + (20 * (ball / abs(ball))));
                 }
-            } else if (yTimer < 700 && xTimer < 700 && (abs(y-2000) > 100 || abs(x-900) > 100)) {
-                mode = distanceToTarget(x, y, 900, 2000) / 13 + 75;
-                RADAR_ERROR = distanceToTarget(x, y, 900, 2000) / 4;
-                mode = RADAR_ERROR;
-                if (yTimer < 700 && xTimer < 700) {
-                    MotorDriver::direction(angleToTarget(x, y, 900, 2000));
-                    MotorDriver::setMaxSpeed(distanceToTarget(x, y, 900, 2000) / 13 + 75);
-                } else if (yTimer < 1000 && abs(y-1800) > 100) {
-                    // MotorDriver::direction(180);
-                } else if (xTimer < 1000 && abs(x-900) > 100) {
-                    // MotorDriver::direction(90);
-                } else if (xTimer < 1000 && abs(x-900) > 100) {
-                    // MotorDriver::direction(-90);
-                }
-            } else {
-                MotorDriver::stop();
+            } else if (yTimer < 700 && xTimer < 700) {
+                mode = 1;
+                goToTarget(900, 2000);
             }
-        } else {
+        }
+        
+        if (mode == -1) {
             MotorDriver::stop();
         }
         
@@ -141,6 +137,30 @@ int main() {
     return 0;
 }
 
+void goToTarget(int tx, int ty, int maxRadar, int maxMotor, int minDistance) {
+    if (!(abs(y-ty) > minDistance || abs(x-tx) > minDistance)) return;
+    
+    if (maxRadar < MIN_RADAR_ERROR) maxRadar = MIN_RADAR_ERROR;
+    if (maxRadar > MAX_RADAR_ERROR) maxRadar = MAX_RADAR_ERROR;
+    if (maxMotor < MIN_MOTOR) maxMotor = MIN_MOTOR;
+    if (maxMotor > MAX_MOTOR) maxMotor = MAX_MOTOR;
+    
+    float distance = distanceToTarget(x, y, tx, ty);
+    
+    float radarOutput = MIN_RADAR_ERROR + 1.0 * ((maxRadar - MIN_RADAR_ERROR)
+                        / (2000 - minDistance)) * (distance - minDistance);
+    float motorOutput = MIN_MOTOR + 1.0 * ((maxMotor - MIN_MOTOR)
+                        / (2000 - minDistance)) * (distance - minDistance);
+    
+    Serial.print("Radar: ");
+    Serial.print(radarOutput);
+    Serial.print("Motor: ");
+    Serial.println(motorOutput);
+    Radar_Error = radarOutput;
+    // MotorDriver::direction(angleToTarget(x, y, tx, ty));
+    // MotorDriver::setMaxSpeed(distanceToTarget(x, y, tx, ty) / 13 + 75);
+}
+
 float angleToTarget(int x1, int y1, int x2, int y2) {
     return atan2(y1-y2, x1-x2) * 180 / 3.14159265 - 90;
 }
@@ -150,19 +170,19 @@ float distanceToTarget(int x1, int y1, int x2, int y2) {
 }
 
 bool radarValid() {
-  return abs(1840-mylidar.width) < RADAR_ERROR && abs(2450-mylidar.height) < RADAR_ERROR;
+  return abs(1840-mylidar.width) < Radar_Error && abs(2450-mylidar.height) < Radar_Error;
 }
 
 bool radarTrash() {
-  return abs(1840-mylidar.width) > RADAR_ERROR && abs(2450-mylidar.height) > RADAR_ERROR;
+  return abs(1840-mylidar.width) > Radar_Error && abs(2450-mylidar.height) > Radar_Error;
 }
 
 bool radarXValid() {
-  return abs(1840-mylidar.width) < RADAR_ERROR;
+  return abs(1840-mylidar.width) < Radar_Error;
 }
 
 bool radarYValid() {
-  return abs(2450-mylidar.height) < RADAR_ERROR;
+  return abs(2450-mylidar.height) < Radar_Error;
 }
 
 void receiveGyro() {
@@ -181,7 +201,6 @@ void receiveCamera() {
 
 void receiveRadar() {
     if (radarIn.receiveData()) {
-        
         /*if (!radarTrash()) {
             if (radarXValid())
                 Serial.print(mylidar.x);
@@ -223,7 +242,6 @@ void receiveRadar() {
         } else {
             // Serial.println("--------------------------------");
         }
-        
     }
 }
 
@@ -247,6 +265,10 @@ void printSim() {
 
 bool initEverything() {
     init();
+    
+    pinMode(45, OUTPUT);
+    pinMode(A8, INPUT);
+    digitalWrite(45, HIGH);
 
     Serial.begin(115200);
     Serial2.begin(115200);
