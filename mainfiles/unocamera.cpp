@@ -34,10 +34,10 @@ int main() {
         send_packet.angle = Vision::getBallAngle();
         send_packet.visible = Vision::isVisible();
         
-        // Serial.println(send_packet.angle);
+        Serial.println(send_packet.angle);
         ET.sendData(I2C_SLAVE_ADDRESS);
         
-        // delay();
+        // delay(30);
     }
 
     return 0;

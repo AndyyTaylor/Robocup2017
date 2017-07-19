@@ -1,6 +1,4 @@
-// Copyright 2017 Andy Taylor
 #include "Radar.h"
-
 
 namespace Radar {
     Point find_start(std::vector<Point> points) {
@@ -35,7 +33,7 @@ namespace Radar {
         std::vector<Point> rhull;
         for (int i = 0; i < hull.size(); i++) {
             Point p = hull[i];
-            rhull.push_back({static_cast<float>(p.x*cosf(angle)-p.y*sinf(angle)), static_cast<float>(p.y*cosf(angle)+p.x*sinf(angle))});
+            rhull.push_back({static_cast<int>(p.x*cosf(angle)-p.y*sinf(angle)), static_cast<int>(p.y*cosf(angle)+p.x*sinf(angle))});
         }
         return rhull;
     }
@@ -43,9 +41,8 @@ namespace Radar {
     void calcBoundRect(std::vector<Point> &field, float *pos) {
         Point p = find_start(field);
 
-        for (int i = 0; i < field.size(); i++) {
+        for (int i = 0; i < field.size(); i++)
             field[i].polar = p.getPolar(field[i]);
-        }
         
         std::sort(field.begin(), field.end(), polarSort);
         
@@ -59,6 +56,7 @@ namespace Radar {
             }
             hull.push_back(field[i]);
         }
+        
         field.clear();
         float bestang = 0;
         float bminx, bmaxx, bminy, bmaxy;

@@ -1,26 +1,23 @@
 #ifndef ORIENTATION_H_INCLUDED
 #define ORIENTATION_H_INCLUDED
 
-namespace Orientation
-{
+namespace Orientation {
     bool init();
     void update();
     
-    bool setupCompass();
     bool setupGyro();
 
-    void calcCompassHeading();
     void loadGyroData();
     void load_ypr();
     void checkGyroStabalized();
     void setOffsets();
     
-    double getCompassHeading();
+    float normalise(float angle);
     float getYaw();
     bool isStabalized();
 
     void outputAllData();
-}
+}   // namespace Orientation
 
 
 #endif

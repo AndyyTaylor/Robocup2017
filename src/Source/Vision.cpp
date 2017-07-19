@@ -47,7 +47,7 @@ namespace Vision {
         
         AFMS.begin();
         
-        myMotor->setSpeed(4);
+        myMotor->setSpeed(10);
         
         return true;
     }
@@ -117,9 +117,9 @@ namespace Vision {
         dirmod = 1;
         searching = false;
         int type;
-        if (fabs(ball.getAngle()) < 10) return;
-        if (fabs(ball.getAngle()) < 18)
-            type = INTERLEAVE;
+        if (fabs(ball.getAngle()) < 15) return;
+        if (fabs(ball.getAngle()) < 50)
+            type = SINGLE;
         else
             type = SINGLE;
         

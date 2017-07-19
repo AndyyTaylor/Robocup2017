@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#include <string>
+
 #include "Source/MotorDriver.h"
 #include "Source/Orientation.h"
 #include "DualMC33926MotorShield.h"
@@ -28,12 +30,16 @@ struct RECEIVE_DATA_STRUCTURE_GYRO {
 };
 
 const int I2C_SLAVE_ADDRESS = 9;
-const int MIN_RADAR_ERROR = 30;
+const int MIN_RADAR_ERROR = 50;
 const int MIN_MOTOR = 100;
-const int MAX_MOTOR = 200;
-const int MAX_RADAR_ERROR = 300;
+const int MAX_MOTOR = 400;
+const int MAX_RADAR_ERROR = 800;
+const int MIN_POS_TIMEOUT = 200;
+const int MAX_POS_TIMEOUT = 1000;
+
 
 int Radar_Error = 100;
+int Pos_Timeout = 1000;
 
 void receive(int numBytes) {}
 void printSim();
@@ -72,6 +78,7 @@ elapsedMillis xTimer;
 
 int x, y, width, height, ball, gyro, vis, stab;
 float mode = 0;
+std::string debug;  // NOLINT
 
 int main() {
     if (!initEverything())
@@ -82,26 +89,59 @@ int main() {
         receiveRadar();
         receiveGyro();
         
+        if (visionTimer > 1000) vis = false;
+        
         MotorDriver::update(gyro);
-        // MotorDriver::update(gyro - angleToTarget(900, 300));
+        
+        debug = "";
         
         mode = -1;
         if (stab) {
-            if ((vis || visionTimer < 100) && false) {
+            if ((vis || visionTimer < 100)) {
                 mode = 0;
                 if (vis) {
                     visionTimer = 0;
                 }
-                
+                // MotorDriver::update(gyro - angleToTarget(x, y, 900, 300));
+                MotorDriver::setMaxSpeed(200);  // HACK - hardcoded
                 if (abs(ball) < 20) {
-                    // MotorDriver::direction(0);
+                    MotorDriver::direction(0);
+                } else if (abs(ball) < 45) {
+                    MotorDriver::direction(ball * 2.5);
                 } else {
-                    // MotorDriver::direction(ball * 1.5);
-                    // MotorDriver::direction(ball + (20 * (ball / abs(ball))));
+                    MotorDriver::direction(ball * 1.5);
                 }
-            } else if (yTimer < 700 && xTimer < 700) {
+                
+            } else if (yTimer < Pos_Timeout && xTimer < Pos_Timeout) {
                 mode = 1;
-                goToTarget(900, 2000);
+                // MotorDriver::update(gyro);
+                if (y > 1300) {
+                    goToTarget(900, 2000, MAX_RADAR_ERROR, MAX_MOTOR / 1.5, 100);
+                    // goToTarget(900, 2000);
+                } else {
+                    if (x > 900) {
+                        goToTarget(1400, 1600);
+                    } else {
+                        goToTarget(600, 1600);
+                    }
+                }
+            } else {
+                MotorDriver::stop();
+            }
+        }
+        
+        if (xTimer < 300) {
+            if (x < 400) {
+                debug = "OOB Left";
+            } else if (x > 1400) {
+                debug = "OOB Right";
+            }
+        }
+        if (yTimer < 300) {
+            if (y < 400) {
+                debug = "OOB Top";
+            } else if (y > 2000) {
+                debug = "OOB bottom";
             }
         }
         
@@ -126,9 +166,19 @@ int main() {
             Serial.print(" - ");
             
             if (stab)
-                Serial.println(gyro);
-            else
-                Serial.println("---");
+                Serial.print(gyro);
+            else {
+                Serial.print("---");
+                Serial.print(gyro);
+            }
+                
+            
+            if (debug != "") {
+                Serial.print(" : ");
+                Serial.print(debug.c_str());
+            }
+            
+            Serial.println();
                 
             serialTimer = 0;
         }
@@ -138,7 +188,10 @@ int main() {
 }
 
 void goToTarget(int tx, int ty, int maxRadar, int maxMotor, int minDistance) {
-    if (!(abs(y-ty) > minDistance || abs(x-tx) > minDistance)) return;
+    if (!(abs(y-ty) > minDistance || abs(x-tx) > minDistance)) {
+        MotorDriver::stop();
+        return;
+    }
     
     if (maxRadar < MIN_RADAR_ERROR) maxRadar = MIN_RADAR_ERROR;
     if (maxRadar > MAX_RADAR_ERROR) maxRadar = MAX_RADAR_ERROR;
@@ -148,17 +201,19 @@ void goToTarget(int tx, int ty, int maxRadar, int maxMotor, int minDistance) {
     float distance = distanceToTarget(x, y, tx, ty);
     
     float radarOutput = MIN_RADAR_ERROR + 1.0 * ((maxRadar - MIN_RADAR_ERROR)
-                        / (2000 - minDistance)) * (distance - minDistance);
+                        / (1500.0f - minDistance)) * (distance - minDistance);
     float motorOutput = MIN_MOTOR + 1.0 * ((maxMotor - MIN_MOTOR)
-                        / (2000 - minDistance)) * (distance - minDistance);
+                        / (1500.0f - minDistance)) * (distance - minDistance);
+    Pos_Timeout = MIN_POS_TIMEOUT + 1.0 * ((MAX_POS_TIMEOUT - MIN_POS_TIMEOUT)
+                        / (1500.0f - minDistance)) * (distance - minDistance);
     
-    Serial.print("Radar: ");
+    /*Serial.print("Radar: ");
     Serial.print(radarOutput);
-    Serial.print("Motor: ");
-    Serial.println(motorOutput);
+    Serial.print(" Motor: ");
+    Serial.println(motorOutput);*/
     Radar_Error = radarOutput;
-    // MotorDriver::direction(angleToTarget(x, y, tx, ty));
-    // MotorDriver::setMaxSpeed(distanceToTarget(x, y, tx, ty) / 13 + 75);
+    MotorDriver::direction(angleToTarget(x, y, tx, ty), false);
+    MotorDriver::setMaxSpeed(motorOutput);
 }
 
 float angleToTarget(int x1, int y1, int x2, int y2) {
@@ -194,8 +249,13 @@ void receiveGyro() {
 
 void receiveCamera() {
     if (cameraIn.receiveData()) {
+        // Serial.println("Camera");
+        
         vis = mydata.foundball;
-        if (vis) ball = mydata.angle;
+        if (vis)  {
+            visionTimer = 0;
+            ball = mydata.angle;
+        }
     }
 }
 
@@ -227,7 +287,7 @@ void receiveRadar() {
             Serial.println(mylidar.height);
         }*/
         
-        
+        mode = Pos_Timeout;
         if (!radarTrash()) {
             if (radarXValid()) {
                 xTimer = 0;
