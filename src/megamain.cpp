@@ -44,22 +44,23 @@ LGT A9-A12
 
 const int I2C_SLAVE_ADDRESS = 9;
 const int MIN_RADAR_ERROR = 300;
-const int MIN_MOTOR = 100;
+const int MIN_MOTOR = 150;
 const int MAX_MOTOR = 400;
 const int MAX_RADAR_ERROR = 800;
-const int MIN_POS_TIMEOUT = 200;
+const int MIN_POS_TIMEOUT = 50;
 const int MAX_POS_TIMEOUT = 1000;
-const int BOUNDARY = 550;
+const int BOUNDARY = 400;
 
 
 int Radar_Error = 100;
-int Pos_Timeout = 400;
+int Pos_Timeout = 50;
 
 void receive(int numBytes) {}
 void printSim();
 void dead();
 
 void followBall();
+void followGib();
 void parkTheBus();
 
 void receiveRadar();
@@ -126,8 +127,6 @@ int main() {
         else
             hasBall = false;
         
-        float toOppGoal = angleToTarget(x, y, 900, 300);
-        MotorDriver::update(gyro - toOppGoal);
         
         debug = "";
         
@@ -135,6 +134,8 @@ int main() {
         if (hasBall) {
             cameraOutData.target = 2;
         }
+        
+        MotorDriver::update(gyro);
         
         if (kickTimer > 80) {
             digitalWrite(36, LOW);
@@ -160,19 +161,37 @@ int main() {
             if (hitLine) {
             } else if (hasBall) {
                 mode = 2;
-                digitalWrite(36, HIGH);
-                kickTimer = 0;
+                visionTimer = 0;
+                float toOppGoal = 0;
+                bool stopped = false;
                 if (vis == 2) {
-                    MotorDriver::update(gyro - ball);
-                    if (abs(gyro - ball) < 5) {
-                        digitalWrite(36, HIGH);
-                        kickTimer = 0;
-                    }
+                    toOppGoal = gyro - ball;
+                    if (toOppGoal > 180) toOppGoal = toOppGoal-360;
+                } else if (xTimer < 80 && yTimer < 80) {
+                    toOppGoal = gyro - angleToTarget(x, y, 1000, 300);
                 } else {
-                    MotorDriver::stop();
+                    stopped = true;
                 }
-            } else if ((vis || visionTimer < 600)) {
-                followBall();
+                Serial.println(toOppGoal);
+                MotorDriver::update(toOppGoal);
+                MotorDriver::setMaxSpeed(100);
+                if (!stopped)
+                    MotorDriver::direction(0);
+                else
+                    MotorDriver::stop();
+                
+                if (fabs(toOppGoal) < 5 && !stopped) {
+                    digitalWrite(36, HIGH);
+                    kickTimer = 0;
+                }
+            } else if ((vis > 0 || visionTimer < 600)) {
+                float toOppGoal = angleToTarget(x, y, 1000, 0);
+                MotorDriver::update(gyro - toOppGoal);
+                if (xTimer < 400 && yTimer < 400) {
+                    followGib();
+                } else {
+                    followBall();
+                }
             } else if (yTimer < Pos_Timeout && xTimer < Pos_Timeout) {
                 parkTheBus();
             } else {
@@ -240,15 +259,15 @@ int main() {
         
         
         
-        if (serialTimer > 50) {
-            Serial.print(hitLine);
+        if (serialTimer > 50 && false) {
+            /*Serial.print(hitLine);
             Serial.print(" -> ");
             Serial.print(xTimer);
             Serial.print(", ");
-            Serial.print(yTimer);
+            Serial.print(yTimer);*/
             
             // printSim();
-            /*Serial.print(bally);
+            Serial.print(bally);
             Serial.print(" -> ");
             Serial.print(x);
             Serial.print(", ");
@@ -284,7 +303,7 @@ int main() {
             if (debug != "") {
                 Serial.print(" : ");
                 Serial.print(debug.c_str());
-            }*/
+            }
             
             /*Serial.print("A9: ");
             Serial.println(analogRead(A9));
@@ -329,8 +348,9 @@ void followBall() {
     float motorOutput = MIN_MOTOR + 1.0 * ((200 - MIN_MOTOR)
                         / (50 - 20)) * (bally - 20);
     if (motorOutput < MIN_MOTOR || cameraOutData.target == 2) motorOutput = MIN_MOTOR;
+    else if (motorOutput > 200) motorOutput = 200;
 
-    MotorDriver::setMaxSpeed(motorOutput);  
+    MotorDriver::setMaxSpeed(motorOutput);
     if (abs(ball) < 20) {
         // MotorDriver::direction(0);
         desiredDirection = 0;
