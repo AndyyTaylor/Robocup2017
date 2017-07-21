@@ -28,6 +28,7 @@ int main() {
     if (!initEverything())
         dead();
     
+    // delay(300);
     while (1) {
         if (IS_OK(lidar.waitPoint())) {
             float distance = lidar.getCurrentPoint().distance;

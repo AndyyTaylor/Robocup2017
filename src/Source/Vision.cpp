@@ -34,11 +34,12 @@ namespace Vision {
     long lastSeenBall;
     
     int dirmod = 1;
-    int limit = 20;
+    int limit = 23;
     float totalstep = 0;
     bool canFlipDir = true;
     bool ballFound = false;
     bool searching = false;
+    int prevTarget = 0;
 
     bool init() {
         pixy.init();
@@ -52,9 +53,16 @@ namespace Vision {
         return true;
     }
 
-    void update() {
-        // if (totalstep != 0) totalstep = fmin(fabs(totalstep), limit) * (totalstep/fabs(totalstep));
-        updateView();
+    void update(int target) {
+        if (target != prevTarget) {
+            prevTarget = target;
+            lastSeenBall = millis() + 1000;
+        }
+        if (totalstep > 23)
+            totalstep = 23;
+        else if (totalstep < -23)
+            totalstep = -23;
+        updateView(target);
     }
     
     void updateMotor() {
@@ -67,14 +75,14 @@ namespace Vision {
         // Serial.println(totalstep);
     }
 
-    void updateView() {
+    void updateView(int target) {
         uint16_t blocks;
 
         blocks = pixy.getBlocks();
         
         if (blocks) {
             for (int i = 0; i < blocks; i++) {
-                if (pixy.blocks[i].signature == 1) {
+                if (pixy.blocks[i].signature == target) {
                     // if (pixy.blocks[i].width * pixy.blocks[i].height < 100) continue;
                     ball.x = pixy.blocks[i].x;
                     ball.y = pixy.blocks[i].y;
@@ -140,6 +148,10 @@ namespace Vision {
         // Serial.println(totalstep);
         // Serial.print(" : ");
         return -ball.getAngle() + totalstep * (180/22);
+    }
+    
+    int getBallY() {
+        return ball.y;
     }
     
     bool isVisible() {

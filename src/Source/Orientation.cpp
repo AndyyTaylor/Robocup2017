@@ -109,6 +109,7 @@ namespace Orientation {
         #endif
         
         mpu.initialize();
+
         devStatus = mpu.dmpInitialize();
 
         mpu.setXGyroOffset(220);

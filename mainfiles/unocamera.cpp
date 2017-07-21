@@ -4,11 +4,16 @@
 #include "Source/Vision.h"
 
 #include <Wire.h>
-#include <EasyTransferI2C.h>
+#include <EasyTransfer.h>
 
-struct SEND_DATA_STRUCTURE{
+struct SEND_DATA_STRUCTURE {
   float angle;
-  bool visible;
+  int bally;
+  int visible;
+};
+
+struct RECEIVE_DATA_STRUCTURE {
+    int target;
 };
 
 const int I2C_SLAVE_ADDRESS = 9;
@@ -19,23 +24,36 @@ void dead();
 void sendData();
 void receiveData();
 
-EasyTransferI2C ET;
+EasyTransfer ETin;
+EasyTransfer ETout;
 SEND_DATA_STRUCTURE send_packet;
+RECEIVE_DATA_STRUCTURE receive_packet;
+
 bool awaitingdata = false;
+int target = 1;
 
 int main() {
     if (!initEverything())
         dead();
 
     while (1) {
-        Vision::update();
+        digitalWrite(LED_BUILTIN, LOW);
+        Vision::update(target);
         Vision::updateMotor();
         
         send_packet.angle = Vision::getBallAngle();
-        send_packet.visible = Vision::isVisible();
+        if (Vision::isVisible()) {
+            send_packet.visible = target;
+        } else {
+            send_packet.visible = 0;
+        }
+        send_packet.bally = Vision::getBallY();
+
+        ETout.sendData();
         
-        Serial.println(send_packet.angle);
-        ET.sendData(I2C_SLAVE_ADDRESS);
+        if (ETin.receiveData()) {
+            target = receive_packet.target;
+        }
         
         // delay(30);
     }
@@ -47,13 +65,15 @@ bool initEverything() {
     init();
 
     Serial.begin(115200);
-    Serial.println("Initializing");
     
     if (!Vision::init())
         return false;
-        
+    
+
     Wire.begin();
-    ET.begin(details(send_packet), &Wire);
+    pinMode(LED_BUILTIN, OUTPUT);
+    ETout.begin(details(send_packet), &Serial);
+    ETin.begin(details(receive_packet), &Serial);
 
     return true;
 }

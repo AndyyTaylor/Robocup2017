@@ -27,6 +27,8 @@ void setup() {
     Sender.begin(details(mydata), &Serial1);
     pinMode(RPLIDAR_MOTOR, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
+    
+    delay(18000);
 }
 
 void loop() {
