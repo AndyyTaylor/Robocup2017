@@ -49,7 +49,7 @@ const int MAX_MOTOR = 400;
 const int MAX_RADAR_ERROR = 800;
 const int MIN_POS_TIMEOUT = 50;
 const int MAX_POS_TIMEOUT = 1000;
-const int BOUNDARY = 400;
+int BOUNDARY = 400;
 
 
 int Radar_Error = 100;
@@ -143,6 +143,10 @@ int main() {
         // Serial.println(angleToTarget(x, y, 900, 300));
         mode = -1;
         if (stab) {
+            if (hitLine)
+                BOUNDARY = 450;
+            else
+                BOUNDARY = 300;
             if ((analogRead(A9) > 300 || analogRead(A10) > 200) && !hitLine) {
                 hitLine = true;
                 x = 0;
@@ -154,7 +158,7 @@ int main() {
             } else if (!inField(x, y)) {
                 hitLine = true;
                 mode = 3;
-                goToTarget(800, 1000, MAX_RADAR_ERROR, 200);
+                goToTarget(800, 1000, MAX_RADAR_ERROR, 100);
             } else {
                 hitLine = false;
             }
@@ -172,7 +176,7 @@ int main() {
                 } else {
                     stopped = true;
                 }
-                Serial.println(toOppGoal);
+                // Serial.println(toOppGoal);
                 MotorDriver::update(toOppGoal);
                 MotorDriver::setMaxSpeed(100);
                 if (!stopped)
@@ -180,13 +184,18 @@ int main() {
                 else
                     MotorDriver::stop();
                 
-                if (fabs(toOppGoal) < 5 && !stopped) {
+                if (fabs(toOppGoal) < 10 && !stopped) {
                     digitalWrite(36, HIGH);
                     kickTimer = 0;
                 }
             } else if ((vis > 0 || visionTimer < 600)) {
-                float toOppGoal = angleToTarget(x, y, 1000, 0);
-                MotorDriver::update(gyro - toOppGoal);
+                float toOppGoal = gyro - angleToTarget(x, y, 900, 0);
+                if (toOppGoal > 180) toOppGoal = toOppGoal-360;
+                MotorDriver::update(toOppGoal);
+                // Serial.print(angleToTarget(x, y, 900, 0));
+                // Serial.print(" - ");
+                // Serial.println(toOppGoal);
+                Radar_Error = 400;
                 if (xTimer < 400 && yTimer < 400) {
                     followGib();
                 } else {
@@ -259,7 +268,7 @@ int main() {
         
         
         
-        if (serialTimer > 50 && false) {
+        if (serialTimer > 50) {
             /*Serial.print(hitLine);
             Serial.print(" -> ");
             Serial.print(xTimer);
@@ -336,6 +345,24 @@ void parkTheBus() {
             goToTarget(600, 1600);
         }
     }
+}
+
+void followGib() {
+    mode = 0;
+    float angleToGoal = angleToTarget(x, y, 1000, 300) - (ball + gyro);
+    if (angleToGoal < -360) angleToGoal += 360;
+    if (angleToGoal < -180) angleToGoal = angleToGoal+360;
+    
+    float motorOutput = MIN_MOTOR + 1.0 * ((200 - MIN_MOTOR)
+                        / (50 - 20)) * (bally - 20);
+    if (motorOutput < MIN_MOTOR || cameraOutData.target == 2) motorOutput = MIN_MOTOR;
+    else if (motorOutput > 200) motorOutput = 200;
+
+    MotorDriver::setMaxSpeed(motorOutput);
+    
+    Serial.println(ball - angleToGoal);
+    // MotorDriver::direction(ball - angleToGoal);
+    desiredDirection = ball - angleToGoal;
 }
 
 void followBall() {
