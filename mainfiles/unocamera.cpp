@@ -5,6 +5,7 @@
 
 #include <Wire.h>
 #include <EasyTransfer.h>
+#include <elapsedMillis.h>
 
 struct SEND_DATA_STRUCTURE {
   float angle;
@@ -26,6 +27,7 @@ void receiveData();
 
 EasyTransfer ETin;
 EasyTransfer ETout;
+elapsedMillis easyTimer;
 SEND_DATA_STRUCTURE send_packet;
 RECEIVE_DATA_STRUCTURE receive_packet;
 
@@ -41,15 +43,19 @@ int main() {
         Vision::update(target);
         Vision::updateMotor();
         
-        send_packet.angle = Vision::getBallAngle();
-        if (Vision::isVisible()) {
-            send_packet.visible = target;
-        } else {
-            send_packet.visible = 0;
-        }
-        send_packet.bally = Vision::getBallY();
+        if (easyTimer > 30) {
+            easyTimer = 0;
+            send_packet.angle = Vision::getBallAngle();
+            if (Vision::isVisible()) {
+                send_packet.visible = target;
+            } else {
+                send_packet.visible = 0;
+            }
+            send_packet.bally = Vision::getBallY();
 
-        ETout.sendData();
+            ETout.sendData();
+        }
+        
         
         if (ETin.receiveData()) {
             target = receive_packet.target;

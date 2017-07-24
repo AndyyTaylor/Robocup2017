@@ -58,7 +58,7 @@ namespace Orientation {
     }
 
     void checkGyroStabalized() {
-        if (abs(prevYaw-yaw) > 1) {
+        if (abs(prevYaw-yaw) > 1 || yaw == 0) {
             stabElapsed = 0;
             prevYaw = yaw;
         }
