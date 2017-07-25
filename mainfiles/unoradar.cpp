@@ -19,6 +19,9 @@ bool initEverything();
 void loop();
 void dead();
 
+bool lidarButtonOn = false;
+bool lidarButtonReleased = true;
+
 RPLidar lidar;
 SEND_STRUCT mydata;
 EasyTransfer Sender;
@@ -27,9 +30,26 @@ std::vector<Radar::Point> field;
 int main() {
     if (!initEverything())
         dead();
-    
+    digitalWrite(LED_BUILTIN, HIGH);
     // delay(300);
     while (1) {
+        
+        if (digitalRead(8) == LOW) {
+            lidarButtonReleased = true;
+        } else if (digitalRead(8) == HIGH && lidarButtonReleased) {
+            lidarButtonReleased = false;
+            if (lidarButtonOn)
+                lidarButtonOn = false;
+            else
+                lidarButtonOn = true;
+        }
+        
+        if (lidarButtonOn) {
+            digitalWrite(LED_BUILTIN, HIGH);
+        } else {
+            // digitalWrite(LED_BUILTIN, LOW);
+        }
+        
         if (IS_OK(lidar.waitPoint())) {
             float distance = lidar.getCurrentPoint().distance;
             float angle    = lidar.getCurrentPoint().angle;
@@ -43,9 +63,9 @@ int main() {
             
             field.push_back({static_cast<int>(x), static_cast<int>(y)});
             
-            digitalWrite(LED_BUILTIN, LOW);
+            // digitalWrite(LED_BUILTIN, LOW);
             if (field.size() > 100) {
-                digitalWrite(LED_BUILTIN, HIGH);
+                // digitalWrite(LED_BUILTIN, HIGH);
                 
                 float pos[5];
                 calcBoundRect(field, pos);
@@ -83,6 +103,8 @@ bool initEverything() {
     Sender.begin(details(mydata), &Serial1);
     pinMode(RPLIDAR_MOTOR, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
+    
+    digitalWrite(8, HIGH);
 }
 
 void dead() {

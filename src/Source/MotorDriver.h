@@ -8,6 +8,8 @@ namespace MotorDriver {
     void direction(double inangle, bool smooth = true);
     void setMaxSpeed(int speed);
     void stop();
+    
+    int getMaxSpeed();
 
     double correct(double speed);
 }   // namespace MotorDriver

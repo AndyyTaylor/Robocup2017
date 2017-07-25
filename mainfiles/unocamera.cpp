@@ -11,6 +11,8 @@ struct SEND_DATA_STRUCTURE {
   float angle;
   int bally;
   int visible;
+  bool motorButton;
+  bool gyroButton;
 };
 
 struct RECEIVE_DATA_STRUCTURE {
@@ -33,6 +35,10 @@ RECEIVE_DATA_STRUCTURE receive_packet;
 
 bool awaitingdata = false;
 int target = 1;
+bool lidarButtonOn = true;
+bool lidarButtonReleased = true;
+bool motorButtonOn = false;
+bool gyroButtonOn = false;
 
 int main() {
     if (!initEverything())
@@ -41,7 +47,36 @@ int main() {
     while (1) {
         digitalWrite(LED_BUILTIN, LOW);
         Vision::update(target);
-        Vision::updateMotor();
+        if (!lidarButtonOn) {
+            Vision::updateMotor();
+        }
+        
+        
+        if (digitalRead(4) == LOW) {
+            lidarButtonReleased = true;
+        } else if (digitalRead(4) == HIGH && lidarButtonReleased) {
+            lidarButtonReleased = false;
+            if (lidarButtonOn)
+                lidarButtonOn = false;
+            else
+                lidarButtonOn = true;
+        }
+        
+        if (!lidarButtonOn)
+            digitalWrite(7, HIGH);
+        else
+            digitalWrite(7, LOW);
+        
+        if (digitalRead(3) == LOW) {
+            motorButtonOn = false;
+        } else {
+            motorButtonOn = true;
+        }
+        
+        if (digitalRead(2) == LOW)
+            gyroButtonOn = false;
+        else
+            gyroButtonOn = true;
         
         if (easyTimer > 30) {
             easyTimer = 0;
@@ -52,7 +87,10 @@ int main() {
                 send_packet.visible = 0;
             }
             send_packet.bally = Vision::getBallY();
-
+            
+            send_packet.motorButton = motorButtonOn;
+            send_packet.gyroButton = !gyroButtonOn;
+            
             ETout.sendData();
         }
         
@@ -60,8 +98,6 @@ int main() {
         if (ETin.receiveData()) {
             target = receive_packet.target;
         }
-        
-        // delay(30);
     }
 
     return 0;
@@ -78,6 +114,15 @@ bool initEverything() {
 
     Wire.begin();
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(2, INPUT);
+    pinMode(3, INPUT);
+    pinMode(4, INPUT);
+    pinMode(7, OUTPUT);
+    
+    digitalWrite(2, HIGH);
+    digitalWrite(3, HIGH);
+    digitalWrite(4, HIGH);
+    
     ETout.begin(details(send_packet), &Serial);
     ETin.begin(details(receive_packet), &Serial);
 

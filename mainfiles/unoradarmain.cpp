@@ -15,6 +15,10 @@ struct SEND_STRUCT{
 const int RPLIDAR_MOTOR = 3;
 const int I2C_SLAVE_ADDRESS = 9;
 
+bool lidarButtonOn = false;
+bool lidarButtonReleased = true;
+
+
 RPLidar lidar;
 SEND_STRUCT mydata;
 EasyTransfer Sender;
@@ -27,12 +31,17 @@ void setup() {
     Sender.begin(details(mydata), &Serial1);
     pinMode(RPLIDAR_MOTOR, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
-    
-    delay(18000);
+    pinMode(2, INPUT);
 }
 
 void loop() {
-    if (IS_OK(lidar.waitPoint())) {
+    if (digitalRead(2) == HIGH) {
+        digitalWrite(LED_BUILTIN, HIGH);
+    } else {
+        digitalWrite(LED_BUILTIN, LOW);
+    }
+    
+    if (IS_OK(lidar.waitPoint()) && digitalRead(2) == HIGH) {
         float distance = lidar.getCurrentPoint().distance;
         float angle    = lidar.getCurrentPoint().angle;
         // bool  startBit = lidar.getCurrentPoint().startBit;
@@ -45,9 +54,9 @@ void loop() {
         
         field.push_back({static_cast<int>(x), static_cast<int>(y)});
         
-        digitalWrite(LED_BUILTIN, LOW);
+        // digitalWrite(LED_BUILTIN, LOW);
         if (field.size() > 100) {
-            digitalWrite(LED_BUILTIN, HIGH);
+            // digitalWrite(LED_BUILTIN, HIGH);
             
             float pos[5];
             calcBoundRect(field, pos);
@@ -64,7 +73,7 @@ void loop() {
     } else {
         analogWrite(RPLIDAR_MOTOR, 0);
         rplidar_response_device_info_t info;
-        if (IS_OK(lidar.getDeviceInfo(info, 100))) {
+        if (IS_OK(lidar.getDeviceInfo(info, 100)) && digitalRead(2) == HIGH) {
             lidar.startScan();
             
             analogWrite(RPLIDAR_MOTOR, 200);

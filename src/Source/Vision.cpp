@@ -47,7 +47,7 @@ namespace Vision {
         // pixy.setLED(0, 0, 0);
         
         AFMS.begin();
-        Serial.println("beign");
+
         myMotor->setSpeed(10);
         
         return true;

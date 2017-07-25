@@ -23,7 +23,9 @@ struct RECEIVE_DATA_STRUCTURE_LIDAR {
 struct RECEIVE_DATA_STRUCTURE_CAMERA {
     float angle;
     int bally;
-    int foundball;
+    int visible;
+    bool motorButton;
+    bool gyroButton;
 };
 
 struct RECEIVE_DATA_STRUCTURE_GYRO {
@@ -43,9 +45,9 @@ LGT A9-A12
 */
 
 const int I2C_SLAVE_ADDRESS = 9;
-const int MIN_RADAR_ERROR = 300;
+const int MIN_RADAR_ERROR = 100;
 const int MIN_MOTOR = 150;
-const int MAX_MOTOR = 300;
+const int MAX_MOTOR = 250;
 const int MAX_RADAR_ERROR = 800;
 const int MIN_POS_TIMEOUT = 50;
 const int MAX_POS_TIMEOUT = 1000;
@@ -88,9 +90,6 @@ RECEIVE_DATA_STRUCTURE_CAMERA cameraData;
 RECEIVE_DATA_STRUCTURE_GYRO gyroData;
 SEND_DATA_STRUCTURE_CAMERA cameraOutData;
 
-DualMC33926MotorShield tp(7, 11, A8, 8, 12, A1, 4, 0);
-DualMC33926MotorShield bt(14, 5, A2, 15, 2, A3, 17, 16);
-
 EasyTransfer radarIn;
 EasyTransfer GyroIn;
 EasyTransfer cameraIn;
@@ -102,11 +101,14 @@ elapsedMillis yTimer = 9999;
 elapsedMillis xTimer = 9999;
 elapsedMillis kickTimer;
 elapsedMillis lineTimer;
+elapsedMillis hangTimer;
 
 int x, y, width, height, ball, bally, gyro, vis, stab;
 bool hasBall = false;
 bool hitLine = false;
 bool prevHitLine = false;
+bool motorsStopped = false;
+int gyroOffset = 0;
 
 bool stop = false;
 int desiredDirection = 0;
@@ -126,14 +128,15 @@ int main() {
             cameraOutData.target = 2;
         else
             cameraOutData.target = 1;
-        
+
         if (!stab)  {
             mode = 0;
-            debug();
+            // debug();
             MotorDriver::stop();
             continue;
         }
-        
+        debug();
+        // MotorDriver::getMaxSpeed();
         digitalWrite(LED_BUILTIN, HIGH);
         
         if (visionTimer > 1000)
@@ -164,14 +167,16 @@ int main() {
             xTimer = 9999;
             yTimer = 9999;
             prevHitLine = hitLine;
+            Serial.println("HIT LINE");
         }
         
-        if (hitLine && (xTimer > 1000 || yTimer > 1000)) {
+        if (hitLine && (xTimer > 400 || yTimer > 400)) {
             mode = 0;
             stop = true;
         } else if (!inField(x, y) && (xTimer < 400 && yTimer < 400)) {
             mode = 1;
             hitLine = true;
+            prevHitLine = true;
             goToTarget(FIELD_WIDTH/2, FIELD_HEIGHT / 2, MAX_RADAR_ERROR, 100);
         } else {
             hitLine = false;
@@ -194,13 +199,18 @@ int main() {
                 }
                 // Serial.println(toOppGoal);
                 MotorDriver::update(toOppGoal);
-                MotorDriver::setMaxSpeed(MIN_MOTOR);
-                if (!stopped)
-                    desiredDirection = 0;
-                else
+                MotorDriver::setMaxSpeed(120);
+                if (!stopped) {
+                    if (y < 700) {
+                        desiredDirection = 180;
+                    } else {
+                        desiredDirection = 0;
+                    }
+                } else {
                     MotorDriver::stop();
+                }
                 
-                if (fabs(toOppGoal) < 10 && !stopped) {
+                if ((fabs(toOppGoal) < 10 && !stopped) || true) {
                     digitalWrite(36, HIGH);
                     kickTimer = 0;
                 }
@@ -228,82 +238,25 @@ int main() {
         }
         
         
-        if (stop) {
+        if (stop || !motorsStopped) {
             MotorDriver::stop();
         } else {
             MotorDriver::direction(desiredDirection, smooth);
         }
-        debug();
-            
-            // MotorDriver::stop();
-        
-        /*if (stop) {
-            MotorDriver::stop();
-            // Serial.println(gyro);
-        } else if (mode == 0) {
-            // desiredDirection = ball;
-            // serialTimer = 0;
-            int direction = -1;
-            if ((desiredDirection < 0 && desiredDirection > -90) || (desiredDirection > 90 && desiredDirection < 180)) {
-                direction = 1;
-            }
-            float ngyro = gyro;
-            if (ngyro > 180) {
-                ngyro = -(360-gyro);
-            }
-            float goalDirection = desiredDirection+ngyro;
-            
-            int dist = 200;
-            
-            float newX = x + sin(radians(goalDirection)) * dist;
-            float newY = y + cos(radians(goalDirection)) * dist;
-            
-            // Serial.print(x);
-            // Serial.print(", ");
-            // Serial.print(y);
-            // Serial.print(" -> ");
-            
-            // Serial.print(newX);
-            // Serial.print(", ");
-            // Serial.print(newY);
-            // Serial.print(" | ");
-            // Serial.print(goalDirection);
-            
-            int runs = 0;
-            while (!inField(newX, 1000) && runs < 300) {
-                runs += 1;
-                goalDirection += 1*direction;
-                newX = x + sin(radians(goalDirection)) * dist;
-                newY = y + cos(radians(goalDirection)) * dist;
-            }
-            
-            // Serial.print(desiredDirection);
-            // Serial.print(" -> ");
-            // Serial.println(goalDirection - ngyro);
-            
-            
-            if (stop) {
-                MotorDriver::stop();
-            } else {
-                MotorDriver::direction(goalDirection - ngyro, smooth);
-            }*/
-            
-            if (stop)
-                MotorDriver::stop();
-        
+        // MotorDriver::direction(0);
     }
 
     return 0;
 }
 
 void parkTheBus() {
-    if (y > 1300) {
-        goToTarget(FIELD_WIDTH / 2, FIELD_HEIGHT - BOUNDARY - 100, MAX_RADAR_ERROR, MAX_MOTOR / 1.5, 200);
+    if (y > FIELD_WIDTH / 5 * 3) {
+        goToTarget(FIELD_WIDTH / 2, FIELD_HEIGHT - BOUNDARY - 100, MAX_RADAR_ERROR, MAX_MOTOR / 1.5, 100);
     } else {
-        if (x > 900) {
-            goToTarget(1400, 1600);
+        if (x > FIELD_WIDTH / 2) {
+            goToTarget(FIELD_WIDTH - 300, FIELD_HEIGHT - BOUNDARY - 500);
         } else {
-            goToTarget(600, 1600);
+            goToTarget(300, FIELD_HEIGHT - BOUNDARY - 500);
         }
     }
 }
@@ -346,7 +299,7 @@ void followBall() {
         // MotorDriver::direction(ball * 1.5);
         desiredDirection = ball * 1.5;
     }*/
-    
+    MotorDriver::setMaxSpeed(motorOutput);
     if (abs(ball) > 36 && abs(ball) < 90) {
         desiredDirection = ball + 54 * (ball / abs(ball));
     } else {
@@ -420,14 +373,19 @@ bool radarYValid() {
 
 void receiveGyro() {
     if (GyroIn.receiveData()) {
-        gyro = gyroData.angle;
+        gyro = gyroData.angle - gyroOffset;
+        while (gyro < -360) gyro += 360;
         stab = gyroData.stab;
     }
 }
 
 void receiveCamera() {
     if (cameraIn.receiveData()) {
-        vis = cameraData.foundball;
+        vis = cameraData.visible;
+        motorsStopped = cameraData.motorButton;
+        if (cameraData.gyroButton) {
+            gyroOffset = gyro + gyroOffset;
+        }
         if (vis)  {
             visionTimer = 0;
             ball = cameraData.angle;
@@ -481,7 +439,11 @@ void receiveRadar() {
             width = mylidar.width;
             height = mylidar.height;
         } else {
-            // Serial.println("--------------------------------");
+            /*Serial.println("--------------------------------");
+            Serial.print(mylidar.width);
+            Serial.print(", ");
+            Serial.println(mylidar.height);
+            Serial.println("--------------------------------");*/
         }
     }
 }
@@ -526,7 +488,7 @@ void debug() {
             Serial.print(" ----");
         
         Serial.print("  ");
-        Serial.print(desiredDirection);
+        Serial.print(motorsStopped);
         
         /*Serial.print("A9: ");
         Serial.println(analogRead(A9));

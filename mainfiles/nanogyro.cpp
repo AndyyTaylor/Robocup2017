@@ -36,10 +36,10 @@ void setup() {
     pinMode(A2, INPUT);
     pinMode(A3, INPUT);
     
-    A0MAX = analogRead(A0)+75;
-    A1MAX = analogRead(A1)+75;
-    A2MAX = analogRead(A2)+75;
-    A3MAX = analogRead(A3)+75;
+    A0MAX = analogRead(A0)+100;
+    A1MAX = analogRead(A1)+100;
+    A2MAX = analogRead(A2)+100;
+    A3MAX = analogRead(A3)+100;
     
     mydata.stab = false;
     ET.begin(details(mydata), &Serial);

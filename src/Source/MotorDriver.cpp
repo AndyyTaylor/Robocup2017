@@ -1,14 +1,19 @@
 #include "MotorDriver.h"
 
 #include <Arduino.h>
+#include <elapsedMillis.h>
 
 #include "DualMC33926MotorShield.h"
 
 namespace MotorDriver {
     DualMC33926MotorShield tp(7, 11, A0, 8, 12, A1, 4, 0);
     DualMC33926MotorShield bt(33, 5, A2, 32, 2, A3, 30, 31);
+    
+    elapsedMillis speedTimer;
 
     int maxspeed = 400;
+    int curSpeed = 0;
+    int prevSpeed = 0;
     double curOrientation = 0;
     
     double curAngle = 0;
@@ -24,7 +29,10 @@ namespace MotorDriver {
     }
 
     void setMaxSpeed(int speed) {
+        if (speed == maxspeed) return;
+        prevSpeed = curSpeed;
         maxspeed = speed;
+        speedTimer = 0;
     }
 
     void stop() {
@@ -51,14 +59,30 @@ namespace MotorDriver {
         Serial.print(" | Input Angle: ");
         Serial.println(inangle);*/
         
+        if (speedTimer < 500) {
+            curSpeed = prevSpeed + (maxspeed-prevSpeed) * (speedTimer / 500.0f);
+        }
+        
         inangle = curAngle/180.0f*PI;
-        double m2 = cos(inangle+PI/4) * maxspeed;
-        double m1 = cos(inangle-PI/4) * maxspeed;
+        double m2 = cos(inangle+PI/4) * curSpeed;
+        double m1 = cos(inangle-PI/4) * curSpeed;
 
         bt.setM1Speed(correct(-m1));
         bt.setM2Speed(correct(-m2));
         tp.setM1Speed(correct(m1));
         tp.setM2Speed(correct(m2));
+    }
+    
+    int getMaxSpeed() {
+        Serial.print(speedTimer);
+        Serial.print(" : ");
+        Serial.print(curSpeed);
+        Serial.print(" -> ");
+        Serial.print(maxspeed);
+        Serial.print(" (");
+        Serial.print(maxspeed-prevSpeed);
+        Serial.println(")");
+        return maxspeed;
     }
 
     double correct(double speed) {
