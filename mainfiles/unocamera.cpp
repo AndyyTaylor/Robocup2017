@@ -5,6 +5,7 @@
 
 #include <Wire.h>
 #include <EasyTransfer.h>
+#include <Adafruit_MotorShield.h>
 #include <elapsedMillis.h>
 
 struct SEND_DATA_STRUCTURE {
@@ -30,8 +31,10 @@ void receiveData();
 EasyTransfer ETin;
 EasyTransfer ETout;
 elapsedMillis easyTimer;
+elapsedMillis caughtTimer;
 SEND_DATA_STRUCTURE send_packet;
 RECEIVE_DATA_STRUCTURE receive_packet;
+
 
 bool awaitingdata = false;
 int target = 1;
@@ -47,31 +50,57 @@ int main() {
     while (1) {
         digitalWrite(LED_BUILTIN, LOW);
         Vision::update(target);
-        if (!lidarButtonOn) {
+        if (lidarButtonOn) {
             Vision::updateMotor();
         }
+        
+        if (target == 4) {
+            Vision::setLimit(10);
+        }
+        
+        if (motorButtonOn) {
+            if (target == 2) {
+                if (caughtTimer > 100) {
+                    Vision::setDribblerSpeed(40);
+                    Vision::runDribblerMotor(BACKWARD);
+                } else {
+                    Vision::setDribblerSpeed(100);
+                    Vision::runDribblerMotor(FORWARD);
+                }
+            } else {
+                caughtTimer = 0;
+                Vision::setDribblerSpeed(100);
+                Vision::runDribblerMotor(FORWARD);
+            }
+        } else {
+            Vision::runDribblerMotor(RELEASE);
+        }
+        
+        
         
         
         if (digitalRead(4) == LOW) {
             lidarButtonReleased = true;
         } else if (digitalRead(4) == HIGH && lidarButtonReleased) {
             lidarButtonReleased = false;
-            if (lidarButtonOn)
+            if (lidarButtonOn || true)
                 lidarButtonOn = false;
             else
                 lidarButtonOn = true;
         }
-        
-        if (!lidarButtonOn)
-            digitalWrite(7, HIGH);
-        else
-            digitalWrite(7, LOW);
         
         if (digitalRead(3) == LOW) {
             motorButtonOn = false;
         } else {
             motorButtonOn = true;
         }
+        
+        lidarButtonOn = motorButtonOn;
+        
+        if (lidarButtonOn)
+            digitalWrite(7, HIGH);
+        else
+            digitalWrite(7, LOW);
         
         if (digitalRead(2) == LOW)
             gyroButtonOn = false;
@@ -92,6 +121,9 @@ int main() {
             send_packet.gyroButton = !gyroButtonOn;
             
             ETout.sendData();
+            /*Serial.print(motorButtonOn);
+            Serial.print(", ");
+            Serial.println(digitalRead(4));*/
         }
         
         

@@ -74,14 +74,14 @@ namespace MotorDriver {
     }
     
     int getMaxSpeed() {
-        Serial.print(speedTimer);
+        /*Serial.print(speedTimer);
         Serial.print(" : ");
         Serial.print(curSpeed);
         Serial.print(" -> ");
         Serial.print(maxspeed);
         Serial.print(" (");
         Serial.print(maxspeed-prevSpeed);
-        Serial.println(")");
+        Serial.println(")");*/
         return maxspeed;
     }
 

@@ -28,6 +28,7 @@ namespace Vision {
     Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
     Adafruit_StepperMotor *myMotor = AFMS.getStepper(200, 2);
+    Adafruit_DCMotor *dribblerMotor = AFMS.getMotor(1);
 
     Pixy pixy;
     Ball ball;
@@ -80,16 +81,19 @@ namespace Vision {
 
         blocks = pixy.getBlocks();
         
+        int tar = target;
+        if (tar > 2) tar = 2;
+        
         if (blocks) {
             for (int i = 0; i < blocks; i++) {
-                if (pixy.blocks[i].signature == target) {
-                    // if (pixy.blocks[i].width * pixy.blocks[i].height < 100) continue;
+                if (pixy.blocks[i].signature == tar) {
+                    if (pixy.blocks[i].width * pixy.blocks[i].height < 200) continue;
                     ball.x = pixy.blocks[i].x;
                     ball.y = pixy.blocks[i].y;
                     ball.w = pixy.blocks[i].width;
                     ball.h = pixy.blocks[i].height;
                     ball.setAngle();
-
+                    // Serial.println(ball.h * ball.w);
                     ballFound = true;
                     lastSeenBall = millis();
                 }
@@ -150,11 +154,23 @@ namespace Vision {
         return -ball.getAngle() + totalstep * (180/22);
     }
     
+    void setLimit(int _limit) {
+        limit = _limit;
+    }
+    
     int getBallY() {
         return ball.y;
     }
     
     bool isVisible() {
         return millis() - lastSeenBall < 50;
+    }
+    
+    void setDribblerSpeed(int speed) {
+        dribblerMotor->setSpeed(speed);
+    }
+    
+    void runDribblerMotor(int dir) {
+        dribblerMotor->run(dir);
     }
 }   // namespace Vision

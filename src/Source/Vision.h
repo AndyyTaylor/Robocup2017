@@ -12,6 +12,12 @@ namespace Vision {
     float getBallAngle();
     int getBallY();
     
+    void setDribblerSpeed(int speed);
+    void setLimit(int _limit);
+
+    void runDribblerMotor(int dir);
+    
+    
     void lookAtBall();
     void findBall();
 }   // namespace Vision
