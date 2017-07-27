@@ -6,16 +6,16 @@
 #include "DualMC33926MotorShield.h"
 
 namespace MotorDriver {
-    DualMC33926MotorShield tp(7, 11, A0, 8, 12, A1, 4, 0);
+    DualMC33926MotorShield tp(7, 11, A0, 8, 12, A1, 4, 6);
     DualMC33926MotorShield bt(33, 5, A2, 32, 2, A3, 30, 31);
-    
+
     elapsedMillis speedTimer;
 
     int maxspeed = 400;
     int curSpeed = 0;
     int prevSpeed = 0;
     double curOrientation = 0;
-    
+
     double curAngle = 0;
     double lastChange = 0;
 
@@ -49,8 +49,8 @@ namespace MotorDriver {
         } else {
             curAngle = inangle;
         }
-        
-        
+
+
         /*Serial.print("Current Angle: ");
         Serial.print(curAngle);
         Serial.print(" | Input Angle: ");
@@ -64,7 +64,7 @@ namespace MotorDriver {
         tp.setM1Speed(correct(m1));
         tp.setM2Speed(correct(m2));
     }
-    
+
     int getMaxSpeed() {
         /*Serial.print(speedTimer);
         Serial.print(" : ");
@@ -82,7 +82,7 @@ namespace MotorDriver {
       if (curOrientation > 180) {newOrientation -=360;}
       return max(-400, min(400, speed - newOrientation));
     }
-    
+
     double relativeAngle(double input) {
         while (input > 180) {input -= 360;}
         while (input < -180) {input +=360;}
