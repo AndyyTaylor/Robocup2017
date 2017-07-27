@@ -44,8 +44,8 @@ const int MAX_MOTOR = 250;
 const int MAX_RADAR_ERROR = 800;
 const int MIN_POS_TIMEOUT = 300;
 const int MAX_POS_TIMEOUT = 500;
-const int FIELD_HEIGHT = 1500;
-const int FIELD_WIDTH = 300;
+const int FIELD_HEIGHT = 2200;
+const int FIELD_WIDTH = 1550;
 int BOUNDARY = 400;
 
 
@@ -124,7 +124,7 @@ int main() {
         
         MotorDriver::update(gyro);
         
-        digitalWrite(LED_BUILTIN, HIGH);
+        // digitalWrite(LED_BUILTIN, HIGH);
         
         if (hitLine && !prevHitLine) {
             prevHitLine = true;
@@ -136,7 +136,7 @@ int main() {
         } else if ((hitLine || lineTimer < 1000) && (xTimer > 400 || yTimer > 400)) {
             stop = true;
             mode = 4;
-        } else if (!inField(x, y) && (xTimer < 100 && yTimer < 100) && false) {
+        } else if (!inField(x, y) && (xTimer < 100 && yTimer < 100)) {
             mode = 4;
             goToTarget(800, 1500, MAX_RADAR_ERROR, 150);
             hitLine = true;
@@ -172,12 +172,15 @@ int main() {
             }
         }
         
-        
-        if (stop || !cameraData.motorButton) {  //
-            // if (mode != -1) mode = 0;
+        desiredDirection = -100;
+        if (stop || !cameraData.motorButton) {
+            if (stop)
+                mode = -2;
+            else
+                mode = -3;
+                
             MotorDriver::stop();
         } else {
-            Serial.println("Move");
             MotorDriver::direction(desiredDirection, smooth);
         }
         
@@ -186,21 +189,21 @@ int main() {
 }
 
 void followBall() {
-    MotorDriver::setMaxSpeed(250);
+    MotorDriver::setMaxSpeed(200);
 
     if (abs(ball) < 20) {
         desiredDirection = 0;
-    } else if (abs(ball) < 45) {
+    } else if (abs(ball) < 75) {
         desiredDirection = ball * 2.5;
     } else {
-        desiredDirection = ball * 1.5;
+        desiredDirection = ball * 1.3;
     }
     
     stop = false;
 }
 
 void parkTheBus() {
-    int bound = 600;
+    /*int bound = 600;
     int num = (millis() / 1000) % 100 / 10;
     while (num > 2) { num -= 3; }
     if (num == 0) {
@@ -211,10 +214,10 @@ void parkTheBus() {
         goToTarget(FIELD_WIDTH - bound, bound, MAX_RADAR_ERROR, 400, 150);
     } else {
         goToTarget(FIELD_WIDTH - bound, bound, MAX_RADAR_ERROR, 400, 150);
-    }
+    }*/
     // goToTarget(FIELD_WIDTH/2, FIELD_HEIGHT/2, MAX_RADAR_ERROR, 400, 150);
     // goToTarget(800, 1300, MAX_RADAR_ERROR, 400, 150);
-    /*if (y > FIELD_HEIGHT / 3 * 2) {
+    if (y > FIELD_HEIGHT / 5 * 3) {
         goToTarget(800, 1300, MAX_RADAR_ERROR, 400, 150);
     } else {
         if (x > FIELD_WIDTH / 3 * 2) {
@@ -222,7 +225,7 @@ void parkTheBus() {
         } else {
             goToTarget(500, FIELD_HEIGHT - 200, MAX_RADAR_ERROR, 400);
         }
-    }*/
+    }
 }
 
 void goToTarget(int tx, int ty, int maxRadar, int maxMotor, int minDistance) {
@@ -414,6 +417,10 @@ void debug() {
         Serial.print(mode);
         Serial.print(" -> ");
         
+        Serial.print(x);
+        Serial.print(", ");
+        Serial.print(y);
+        
         Serial.print(" | ");
         
         Serial.print(vis);
@@ -444,7 +451,7 @@ void debug() {
         
         int num = (millis() / 1000) % 100 / 10;
         while (num > 3) { num -= 3; }
-        Serial.print(stop);
+        Serial.print(desiredDirection);
         
         Serial.println();
             

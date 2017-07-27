@@ -50,6 +50,7 @@ int main() {
     while (1) {
         digitalWrite(LED_BUILTIN, LOW);
         Vision::update(target);
+
         if (lidarButtonOn) {
             Vision::updateMotor();
         }
@@ -123,7 +124,8 @@ int main() {
             send_packet.gyroButton = !gyroButtonOn;
             
             ETout.sendData();
-            /*Serial.print(motorButtonOn);
+            // Serial.println(motorButtonOn);
+            /*
             Serial.print(", ");
             Serial.println(digitalRead(4));*/
         }
