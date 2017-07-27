@@ -6,7 +6,7 @@
 #include "DualMC33926MotorShield.h"
 
 namespace MotorDriver {
-    DualMC33926MotorShield tp(7, 11, A0, 8, 12, A1, 4, 6);
+    DualMC33926MotorShield tp(7, 11, A0, 8, 12, A1, 9, 6);
     DualMC33926MotorShield bt(33, 5, A2, 32, 2, A3, 30, 31);
 
     elapsedMillis speedTimer;
