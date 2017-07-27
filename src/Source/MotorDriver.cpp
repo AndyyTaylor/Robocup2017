@@ -29,10 +29,7 @@ namespace MotorDriver {
     }
 
     void setMaxSpeed(int speed) {
-        if (speed == maxspeed) return;
-        prevSpeed = curSpeed;
         maxspeed = speed;
-        speedTimer = 0;
     }
 
     void stop() {
@@ -58,14 +55,9 @@ namespace MotorDriver {
         Serial.print(curAngle);
         Serial.print(" | Input Angle: ");
         Serial.println(inangle);*/
-        
-        if (speedTimer < 500) {
-            curSpeed = prevSpeed + (maxspeed-prevSpeed) * (speedTimer / 500.0f);
-        }
-        
         inangle = curAngle/180.0f*PI;
-        double m2 = cos(inangle+PI/4) * curSpeed;
-        double m1 = cos(inangle-PI/4) * curSpeed;
+        double m2 = cos(inangle+PI/4) * maxspeed;
+        double m1 = cos(inangle-PI/4) * maxspeed;
 
         bt.setM1Speed(correct(-m1));
         bt.setM2Speed(correct(-m2));

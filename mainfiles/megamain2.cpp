@@ -45,14 +45,14 @@ LGT A9-A12
 */
 
 const int I2C_SLAVE_ADDRESS = 9;
-const int MIN_RADAR_ERROR = 300;
+const int MIN_RADAR_ERROR = 200;
 const int MIN_MOTOR = 130;
 const int MAX_MOTOR = 250;
 const int MAX_RADAR_ERROR = 800;
 const int MIN_POS_TIMEOUT = 100;
-const int MAX_POS_TIMEOUT = 1000;
-const int FIELD_HEIGHT = 2250;
-const int FIELD_WIDTH = 1550;
+const int MAX_POS_TIMEOUT = 500;
+const int FIELD_HEIGHT = 2450;
+const int FIELD_WIDTH = 1850;
 int BOUNDARY = 400;
 
 
@@ -129,18 +129,20 @@ int main() {
         // MotorDriver::direction(0);
         
         if (analogRead(A6) < 100) {
+            if (!hasBall) hasBallTimer = 0;
             hasBall = true;
-            hasBallTimer = 0;
         } else {
             hasBall = false;
         }
         
         if (hasBall) {
-            if (hasBallTimer < 300 || y < 700) {
+            if (hasBallTimer < 300 || y < 700) {    // Based on how we're angled to goal
                 cameraOutData.target = 3;
             } else {
                 cameraOutData.target = 2;
             }
+        } else if (y > FIELD_HEIGHT / 3 * 2 && false) {
+            cameraOutData.target = 4;
         } else {
             cameraOutData.target = 1;
         }
@@ -151,7 +153,7 @@ int main() {
             MotorDriver::stop();
             continue;
         }
-        debug();
+        
         // MotorDriver::getMaxSpeed();
         digitalWrite(LED_BUILTIN, HIGH);
         
@@ -189,11 +191,9 @@ int main() {
             Serial.println("HIT LINE");
         }
         
-        if (hitLine && (xTimer > 400 || yTimer > 400)) {
-            mode = 0;
+        if (hitLine && (xTimer > 400 && yTimer > 400)) {
             stop = true;
         } else if (!inField(x, y) && (xTimer < 400 && yTimer < 400)) {
-            mode = 1;
             hitLine = true;
             prevHitLine = true;
             goToTarget(FIELD_WIDTH/2, FIELD_HEIGHT / 2, MAX_RADAR_ERROR, 100);
@@ -202,77 +202,19 @@ int main() {
             prevHitLine = false;
         }
         
-        if (!hitLine && false) {
-            if (hasBall || hasBallTimer < 3000) {
-                mode = 2;
-                // visionTimer = 0;
-                float toOppGoal = 0;
-                bool stopped = false;
-                if (vis == 2 && false) {
-                    toOppGoal = gyro - ball;
-                    if (toOppGoal > 180) toOppGoal = toOppGoal-360;
-                } else if (xTimer < 300 && yTimer < 300) {
-                    toOppGoal = gyro - angleToTarget(x, y, FIELD_WIDTH / 2, 300);
-                } else {
-                    stopped = true;
-                }
-                // Serial.println(toOppGoal);
-                MotorDriver::update(toOppGoal);
-                MotorDriver::setMaxSpeed(175);
-                if (!stopped) {
-                    if (y < 700 && fabs(toOppGoal) > 30) {
-                        desiredDirection = 180;
-                        cameraOutData.target = 3;
-                    } else {
-                        desiredDirection = 0;
-                        cameraOutData.target = 2;
-                    }
-                } else {
-                    stop = true;
-                }
-                
-                if (analogRead(A7) > 600) {
-                    Serial.println("KICK");
-                    digitalWrite(51, HIGH);
-                    kickTimer = 0;
-                }
-            } else if ((vis > 0 || visionTimer < 600)) {
-                float toOppGoal = gyro - angleToTarget(x, y, FIELD_WIDTH / 2, 0);
-                if (toOppGoal > 180) toOppGoal = toOppGoal-360;
-                MotorDriver::update(toOppGoal);
-                // Serial.print(angleToTarget(x, y, 900, 0));
-                // Serial.print(" - ");
-                // Serial.println(toOppGoal);
-                Radar_Error = 400;
-                if (xTimer < 400 && yTimer < 400 && false) {
-                    mode = 3;
-                    followGib();
-                } else {
-                    mode = 4;
-                    followBall();
-                }
-            } else if (yTimer < Pos_Timeout && xTimer < Pos_Timeout) {
-                parkTheBus();
-            } else {
-                stop = true;
-                // MotorDriver::stop();
-            }
+        if (!hitLine) {
+            followBall();
         }
-        
-        parkTheBus();
-        if (stop || !motorsStopped) {
+        debug();
+        /*if ((stop || !motorsStopped)) {
+            mode = 5;
             MotorDriver::stop();
         } else {
-            int prevBoundary = BOUNDARY;
-            BOUNDARY = 550;
-            if (!inField(x, y)) {
-                // MotorDriver::setMaxSpeed(MIN_MOTOR);
-            }
-            BOUNDARY = prevBoundary;
-            // MotorDriver::setMaxSpeed(100);
+            mode = 6;
+            MotorDriver::setMaxSpeed(230);
             MotorDriver::direction(desiredDirection, smooth);
-        }
-        // MotorDriver::direction(0);
+        }*/
+        MotorDriver::direction(0);
     }
 
     return 0;
@@ -280,12 +222,12 @@ int main() {
 
 void parkTheBus() {
     if (y > FIELD_HEIGHT / 3 * 2) {
-        goToTarget(FIELD_WIDTH / 2, FIELD_HEIGHT - BOUNDARY - 100, MAX_RADAR_ERROR, 200, 200);
+        goToTarget(FIELD_WIDTH / 2, FIELD_HEIGHT - BOUNDARY - 100, MAX_RADAR_ERROR, 100, 200);
     } else {
         if (x > FIELD_WIDTH / 3 * 2) {
-            goToTarget(FIELD_WIDTH - 500, FIELD_HEIGHT - BOUNDARY - 500, MAX_RADAR_ERROR, 400);
+            goToTarget(FIELD_WIDTH - 500, FIELD_HEIGHT - 200, MAX_RADAR_ERROR, MAX_MOTOR);
         } else {
-            goToTarget(500, FIELD_HEIGHT - BOUNDARY - 500, MAX_RADAR_ERROR, 400);
+            goToTarget(500, FIELD_HEIGHT - 200, MAX_RADAR_ERROR, MAX_MOTOR);
         }
     }
 }
@@ -317,17 +259,25 @@ void followBall() {
                         / (180 - 60)) * (bally - 60);
     if (motorOutput < MIN_MOTOR || cameraOutData.target == 2) motorOutput = MIN_MOTOR;
     else if (motorOutput > MAX_MOTOR) motorOutput = MAX_MOTOR;
-
-    if (abs(ball) < 36) {
-        // MotorDriver::direction(0);
-        desiredDirection = ball * 1.3;
-    } else if (abs(ball) < 90) {
-        // MotorDriver::direction(ball * 2.5);
-        desiredDirection = ball + 54;
+    MotorDriver::setMaxSpeed(motorOutput);
+    
+    if (y > FIELD_HEIGHT / 3 * 2 && yTimer < 400) {
+        desiredDirection = ball;
+        mode = 1;
     } else {
-        // MotorDriver::direction(ball * 1.5);
-        desiredDirection = ball * 1.3;
+        mode = 2;
+        if (abs(ball) < 25) {
+            // MotorDriver::direction(0);
+            desiredDirection = ball * 1.2;
+        } else if (abs(ball) < 90) {
+            // MotorDriver::direction(ball * 2.5);
+            desiredDirection = ball + 54;
+        } else {
+            // MotorDriver::direction(ball * 1.5);
+            desiredDirection = ball * 1.3;
+        }
     }
+    
     /*MotorDriver::setMaxSpeed(motorOutput);
     if (abs(ball) < 20) {
         desiredDirection = 0;
@@ -364,6 +314,7 @@ void followBall() {
 void lineInterrupt() {
     hitLine = true;
     lineTimer = 0;
+    Serial.println("Hit a fucking line");
 }
 
 bool inField(int x1, int y1) {
@@ -371,11 +322,6 @@ bool inField(int x1, int y1) {
 }
 
 void goToTarget(int tx, int ty, int maxRadar, int maxMotor, int minDistance) {
-    Serial.print(abs(x-tx));
-    Serial.print(", ");
-    Serial.print(abs(y-ty));
-    Serial.print(" : ");
-    Serial.println(!(abs(y-ty) > minDistance || abs(x-tx) > minDistance));
     if (!(abs(y-ty) > minDistance || abs(x-tx) > minDistance)) {
         stop = true;
         return;
@@ -384,7 +330,7 @@ void goToTarget(int tx, int ty, int maxRadar, int maxMotor, int minDistance) {
     if (maxRadar < MIN_RADAR_ERROR) maxRadar = MIN_RADAR_ERROR;
     if (maxRadar > MAX_RADAR_ERROR) maxRadar = MAX_RADAR_ERROR;
     if (maxMotor < MIN_MOTOR) maxMotor = MIN_MOTOR;
-    // if (maxMotor > MAX_MOTOR) maxMotor = MAX_MOTOR;
+    if (maxMotor > MAX_MOTOR) maxMotor = MAX_MOTOR;
     
     float distance = distanceToTarget(x, y, tx, ty);
     
@@ -457,7 +403,6 @@ void receiveCamera() {
         } else {
             prevVis = false;
         }
-        cameraOutData.target = 4;  // TODO(andy): remove the shit out of this
         cameraOut.sendData();
     }
 }
@@ -489,9 +434,7 @@ void receiveRadar() {
             Serial.print(" - ");
             Serial.println(mylidar.height);
         }*/
-        Serial.print(mylidar.width);
-        Serial.print(", ");
-        Serial.println(mylidar.height);
+
         if (!radarTrash()) {
             // Serial.print(xTimer);
             // Serial.print(", ");
@@ -517,7 +460,6 @@ void receiveRadar() {
 }
 
 void debug() {
-    return;
     if (serialTimer > 30) {
         /*Serial.print(hitLine);
         Serial.print(" -> ");
@@ -526,7 +468,7 @@ void debug() {
         Serial.print(yTimer);*/
         
         // printSim();
-        Serial.print(bally);
+        Serial.print(mode);
         Serial.print(" -> ");
         Serial.print(x);
         Serial.print(", ");
@@ -552,23 +494,13 @@ void debug() {
         }
         
         if (hasBall)
-            Serial.print(" ball");
+            Serial.print(" ball ");
         else
-            Serial.print(" ----");
+            Serial.print(" ---- ");
         
-        Serial.print("  ");
         Serial.print(desiredDirection);
-        Serial.print(" @ ");
-        Serial.print(MotorDriver::getMaxSpeed());
-        
-        /*Serial.print("A9: ");
-        Serial.println(analogRead(A9));
-        Serial.print("A10: ");
-        Serial.println(analogRead(A10));
-        Serial.print("A11: ");
-        Serial.println(analogRead(A11));
-        Serial.print("A12: ");
-        Serial.println(analogRead(A12));*/
+        Serial.print(" --- ");
+        Serial.print(stop);
         
         Serial.println();
             

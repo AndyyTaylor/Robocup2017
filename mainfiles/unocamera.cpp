@@ -56,6 +56,8 @@ int main() {
         
         if (target == 4) {
             Vision::setLimit(10);
+        } else {
+            Vision::setLimit(23);
         }
         
         if (motorButtonOn) {
@@ -89,7 +91,7 @@ int main() {
                 lidarButtonOn = true;
         }
         
-        if (digitalRead(3) == LOW) {
+        if (digitalRead(2) == LOW) {
             motorButtonOn = false;
         } else {
             motorButtonOn = true;
@@ -102,7 +104,7 @@ int main() {
         else
             digitalWrite(7, LOW);
         
-        if (digitalRead(2) == LOW)
+        if (digitalRead(3) == LOW)
             gyroButtonOn = false;
         else
             gyroButtonOn = true;

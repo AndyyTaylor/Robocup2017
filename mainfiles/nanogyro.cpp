@@ -31,6 +31,7 @@ void setup() {
     Orientation::init();
     
     pinMode(13, OUTPUT);
+    pinMode(12, OUTPUT);
     pinMode(A0, INPUT);
     pinMode(A1, INPUT);
     pinMode(A2, INPUT);
@@ -60,10 +61,13 @@ void loop() {
         stabTimer = 0;
     }
     
-    if (lineTimer < LINE_HANG)
+    if (lineTimer < LINE_HANG) {
         digitalWrite(13, HIGH);
-    else
+        digitalWrite(12, HIGH);
+    } else {
         digitalWrite(13, LOW);
+        digitalWrite(12, LOW);
+    }
 }
 
 bool onLine() {

@@ -82,7 +82,7 @@ namespace Vision {
         blocks = pixy.getBlocks();
         
         int tar = target;
-        if (tar > 2) tar = 2;
+        if (tar > 2) tar = 1;
         
         if (blocks) {
             for (int i = 0; i < blocks; i++) {

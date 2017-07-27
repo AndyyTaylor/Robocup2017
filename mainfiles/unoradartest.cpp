@@ -51,7 +51,7 @@ void loop() {
         
         field.push_back({(int) x, (int) y});
         
-        if (field.size() % 10 == 0) {
+        if (field.size() % 3 == 0) {
             mydata.x = x;
             mydata.y = y;
             Sender.sendData();
