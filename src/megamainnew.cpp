@@ -124,7 +124,7 @@ int main() {
         
         MotorDriver::update(gyro);
         
-        // digitalWrite(LED_BUILTIN, HIGH);
+        digitalWrite(LED_BUILTIN, HIGH);
         
         if (hitLine && !prevHitLine) {
             prevHitLine = true;
@@ -172,8 +172,8 @@ int main() {
             }
         }
         
-        desiredDirection = -100;
-        if (stop || !cameraData.motorButton) {
+        desiredDirection = 90;
+        if (!cameraData.motorButton) {
             if (stop)
                 mode = -2;
             else
