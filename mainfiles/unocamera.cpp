@@ -63,11 +63,11 @@ int main() {
         
         if (motorButtonOn) {
             if (target == 2) {
-                if (caughtTimer > 100) {
+                if (caughtTimer > 100 && false) {
                     Vision::setDribblerSpeed(40);
                     Vision::runDribblerMotor(BACKWARD);
                 } else {
-                    Vision::setDribblerSpeed(100);
+                    Vision::setDribblerSpeed(255);
                     Vision::runDribblerMotor(FORWARD);
                 }
             } else {
@@ -129,7 +129,7 @@ int main() {
             Serial.print(", ");
             Serial.println(digitalRead(4));*/
         }
-        
+        Serial.println(Vision::isVisible());
         
         if (ETin.receiveData()) {
             target = receive_packet.target;

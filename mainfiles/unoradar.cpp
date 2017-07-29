@@ -47,7 +47,7 @@ int main() {
         if (lidarButtonOn) {
             digitalWrite(LED_BUILTIN, HIGH);
         } else {
-            // digitalWrite(LED_BUILTIN, LOW);
+            digitalWrite(LED_BUILTIN, LOW);
         }
         
         if (IS_OK(lidar.waitPoint())) {
@@ -55,8 +55,7 @@ int main() {
             float angle    = lidar.getCurrentPoint().angle;
             // bool  startBit = lidar.getCurrentPoint().startBit;
             // byte  quality  = lidar.getCurrentPoint().quality;
-            
-            if (distance > 3000) continue;
+            if (distance > 6000) continue;
             
             float x = cosf(radians(static_cast<float>(angle))) * static_cast<float>(distance);
             float y = sinf(radians(static_cast<float>(angle))) * static_cast<float>(distance);

@@ -36,18 +36,21 @@ void setup() {
 
 void loop() {
     if (digitalRead(2) == HIGH) {
-        digitalWrite(LED_BUILTIN, HIGH);
+        // digitalWrite(LED_BUILTIN, HIGH);
     } else {
-        digitalWrite(LED_BUILTIN, LOW);
+        // digitalWrite(LED_BUILTIN, LOW);
     }
     
+    digitalWrite(LED_BUILTIN, LOW);
+    
     if (IS_OK(lidar.waitPoint()) && digitalRead(2) == HIGH) {
+        
         float distance = lidar.getCurrentPoint().distance;
         float angle    = lidar.getCurrentPoint().angle;
         // bool  startBit = lidar.getCurrentPoint().startBit;
         // byte  quality  = lidar.getCurrentPoint().quality;
         
-        if (distance > 3000) return;
+        if (distance > 6000) return;
         
         float x = cosf(radians(static_cast<float>(angle))) * static_cast<float>(distance);
         float y = sinf(radians(static_cast<float>(angle))) * static_cast<float>(distance);
@@ -73,9 +76,10 @@ void loop() {
     } else {
         analogWrite(RPLIDAR_MOTOR, 0);
         rplidar_response_device_info_t info;
+        
         if (IS_OK(lidar.getDeviceInfo(info, 100)) && digitalRead(2) == HIGH) {
             lidar.startScan();
-            
+            digitalWrite(LED_BUILTIN, HIGH);
             analogWrite(RPLIDAR_MOTOR, 200);
             delay(1000);
         }

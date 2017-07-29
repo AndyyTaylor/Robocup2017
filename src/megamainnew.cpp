@@ -44,8 +44,8 @@ const int MAX_MOTOR = 250;
 const int MAX_RADAR_ERROR = 800;
 const int MIN_POS_TIMEOUT = 300;
 const int MAX_POS_TIMEOUT = 500;
-const int FIELD_HEIGHT = 2200;
-const int FIELD_WIDTH = 1550;
+const int FIELD_HEIGHT = 6000;
+const int FIELD_WIDTH = 4000;
 int BOUNDARY = 400;
 
 
@@ -93,6 +93,7 @@ elapsedMillis kickTimer;
 elapsedMillis lineTimer;
 elapsedMillis hangTimer;
 elapsedMillis hasBallTimer = 9999;
+elapsedMillis parkTimer;
 
 int x, y, width, height, ball, bally, gyro, vis, stab;
 bool hasBall = false;
@@ -126,6 +127,10 @@ int main() {
         
         digitalWrite(LED_BUILTIN, HIGH);
         
+        if (kickTimer > 250) {
+            digitalWrite(51, LOW);
+        }
+        
         if (hitLine && !prevHitLine) {
             prevHitLine = true;
             xTimer = 9999;
@@ -138,7 +143,7 @@ int main() {
             mode = 4;
         } else if (!inField(x, y) && (xTimer < 100 && yTimer < 100)) {
             mode = 4;
-            goToTarget(800, 1500, MAX_RADAR_ERROR, 150);
+            goToTarget(800, 1500, MAX_RADAR_ERROR, 200);
             hitLine = true;
             prevHitLine = true;
             mode = 4;
@@ -149,7 +154,7 @@ int main() {
         }
         
         if (!hitLine && lineTimer > 300) {
-            if (hasBall && vis == 0) {
+            if (hasBall && hasBallTimer > 100) {
                 mode = 7;
                 if (y > 800 || yTimer > 1000) {
                     cameraOutData.target = 2;
@@ -157,23 +162,30 @@ int main() {
                     cameraOutData.target = 3;
                 }
                 // MotorDriver::update(gyro - angleToTarget(x, y, FIELD_WIDTH / 2, 300));
-                MotorDriver::setMaxSpeed(200);
+                MotorDriver::setMaxSpeed(250);
                 desiredDirection = 0;
+                parkTimer = 0;
+                
+                if (analogRead(A7) > 600) {
+                    // digitalWrite(51, HIGH);
+                    kickTimer = 0;
+                }
             } else if ((vis > 0 || visionTimer < 800)) {
                 mode = 1;
                 followBall();
                 Pos_Timeout = 500;
-            } else if (xTimer < 1000 && yTimer < 1000) {
-                mode = 2;
-                parkTheBus();
+                parkTimer = 0;
+            } else if (xTimer < Pos_Timeout && yTimer < Pos_Timeout) {
+                    mode = 2;
+                    parkTheBus();
             } else {
                 mode = -1;
                 stop = true;
+                parkTimer = 0;
             }
         }
         
-        desiredDirection = 90;
-        if (!cameraData.motorButton) {
+        if (stop || !cameraData.motorButton) {
             if (stop)
                 mode = -2;
             else
@@ -189,35 +201,38 @@ int main() {
 }
 
 void followBall() {
-    MotorDriver::setMaxSpeed(200);
+    MotorDriver::update(gyro - angleToTarget(x, y, FIELD_WIDTH / 2, 300));
+    MotorDriver::setMaxSpeed(300);
 
-    if (abs(ball) < 20) {
-        desiredDirection = 0;
-    } else if (abs(ball) < 75) {
-        desiredDirection = ball * 2.5;
-    } else {
+    if (abs(ball) < 36) {
         desiredDirection = ball * 1.3;
+    } else if (abs(ball) > 126) {
+        desiredDirection = ball * 1.3;
+    } else {
+        desiredDirection = ball + 54;
     }
     
     stop = false;
 }
 
 void parkTheBus() {
-    /*int bound = 600;
-    int num = (millis() / 1000) % 100 / 10;
-    while (num > 2) { num -= 3; }
+    int bound = 1000;
+    int num = (millis() / 1000) % 100 / 20;
+    while (num > 4) { num -= 5; }
     if (num == 0) {
-        goToTarget(FIELD_WIDTH/2, FIELD_HEIGHT/2, MAX_RADAR_ERROR, 400, 150);
+        goToTarget(FIELD_WIDTH/2, FIELD_HEIGHT/2, MAX_RADAR_ERROR, 300, 150);
     } else if (num == 1) {
-        goToTarget(bound, bound, MAX_RADAR_ERROR, 400, 150);
+        goToTarget(bound, bound, MAX_RADAR_ERROR, 300, 150);
     } else if (num == 2) {
-        goToTarget(FIELD_WIDTH - bound, bound, MAX_RADAR_ERROR, 400, 150);
-    } else {
-        goToTarget(FIELD_WIDTH - bound, bound, MAX_RADAR_ERROR, 400, 150);
-    }*/
+        goToTarget(FIELD_WIDTH - bound, bound, MAX_RADAR_ERROR, 300, 150);
+    } else if (num == 3) {
+        goToTarget(FIELD_WIDTH - bound, FIELD_HEIGHT - bound, MAX_RADAR_ERROR, 300, 150);
+    } else if (num == 4) {
+        goToTarget(bound, FIELD_HEIGHT - bound, MAX_RADAR_ERROR, 300, 150);
+    }
     // goToTarget(FIELD_WIDTH/2, FIELD_HEIGHT/2, MAX_RADAR_ERROR, 400, 150);
     // goToTarget(800, 1300, MAX_RADAR_ERROR, 400, 150);
-    if (y > FIELD_HEIGHT / 5 * 3) {
+    /*if (y > FIELD_HEIGHT / 5 * 3) {
         goToTarget(800, 1300, MAX_RADAR_ERROR, 400, 150);
     } else {
         if (x > FIELD_WIDTH / 3 * 2) {
@@ -225,7 +240,7 @@ void parkTheBus() {
         } else {
             goToTarget(500, FIELD_HEIGHT - 200, MAX_RADAR_ERROR, 400);
         }
-    }
+    }*/
 }
 
 void goToTarget(int tx, int ty, int maxRadar, int maxMotor, int minDistance) {
@@ -310,15 +325,15 @@ void setupVars() {
     
     if (analogRead(A6) < 100) {
         hasBall = true;
-        hasBallTimer = 0;
     } else {
+        hasBallTimer = 0;
         hasBall = false;
     }
     
     if (hitLine || lineTimer < 300) {
-        BOUNDARY = 400;
+        BOUNDARY = 500;
     } else {
-        BOUNDARY = 300;
+        BOUNDARY = 450;
     }
     
     stop = false;
@@ -343,6 +358,7 @@ void receiveCamera() {
 }
 
 void receiveRadar() {
+    Radar_Error = 500;
     if (radarIn.receiveData()) {
         Serial.print(mylidar.width);
         Serial.print(", ");
@@ -446,12 +462,12 @@ void debug() {
         else
             Serial.print(" ---- ");
         
-        Serial.print(MotorDriver::getMaxSpeed());
+        Serial.print(kickTimer);
         Serial.print(" --- ");
         
         int num = (millis() / 1000) % 100 / 10;
         while (num > 3) { num -= 3; }
-        Serial.print(desiredDirection);
+        Serial.print(analogRead(A7));
         
         Serial.println();
             

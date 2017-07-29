@@ -44,7 +44,7 @@ void loop() {
         bool  startBit = lidar.getCurrentPoint().startBit;
         byte  quality  = lidar.getCurrentPoint().quality;
         
-        if (distance > 3000) return;
+        if (distance > 9000) return;
         
         float x = cosf(radians(static_cast<float>(angle))) * static_cast<float>(distance);
         float y = sinf(radians(static_cast<float>(angle))) * static_cast<float>(distance);

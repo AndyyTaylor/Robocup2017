@@ -58,7 +58,7 @@ namespace MotorDriver {
         inangle = curAngle/180.0f*PI;
         double m2 = cos(inangle+PI/4) * maxspeed;
         double m1 = cos(inangle-PI/4) * maxspeed;
-
+        
         bt.setM1Speed(correct(-m1));
         bt.setM2Speed(correct(-m2));
         tp.setM1Speed(correct(m1));
